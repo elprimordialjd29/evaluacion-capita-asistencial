@@ -73,7 +73,14 @@ function App() {
         // Load Config
         const config = await StorageService.getConfig();
         if (config) {
-          if (config.metas && config.metas.length > 0) setMetas(config.metas);
+          if (config.metas && config.metas.length > 0) {
+            // Merge: keep saved goals, add any new default types missing from saved config
+            const savedMap = new Map(config.metas.map((m: ServiceTypeMeta) => [m.type, m]));
+            const merged = TIPOS_SERVICIOS_DEFAULT.map(t =>
+              savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true }
+            );
+            setMetas(merged);
+          }
           if (config.scale) setScale(config.scale);
         }
 
