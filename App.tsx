@@ -46,6 +46,10 @@ function App() {
   // Search State
   const [searchTerm, setSearchTerm] = useState("");
 
+  // File Selection State
+  const [ripsFileNames, setRipsFileNames] = useState<string[]>([]);
+  const [cupsFileName, setCupsFileName] = useState<string>('');
+
   // Pagination State
   const [pagePat, setPagePat] = useState(1);
   const [pageCup, setPageCup] = useState(1);
@@ -101,6 +105,14 @@ function App() {
   useEffect(() => {
     setPageRips(1);
   }, [searchTerm]);
+
+  // Auto-dismiss non-error messages after 5s
+  useEffect(() => {
+    if (message && message.type !== 'error') {
+      const timer = setTimeout(() => setMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   // Save config when changed
   useEffect(() => {
@@ -617,7 +629,14 @@ function App() {
               <Activity className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
               Evaluación Cápita Asistencia
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Análisis inteligente de prestación de servicios</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Análisis inteligente de prestación de servicios</p>
+              {registros.length > 0 && (
+                <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-500/30">
+                  {registros.length.toLocaleString()} registros
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -658,7 +677,10 @@ function App() {
             'bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-500/20'
           }`}>
             {message.type === 'error' ? <AlertTriangle className="h-5 w-5 flex-shrink-0" /> : <CheckCircle className="h-5 w-5 flex-shrink-0" />}
-            <span className="text-sm font-medium">{message.text}</span>
+            <span className="text-sm font-medium flex-1">{message.text}</span>
+            <button onClick={() => setMessage(null)} className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex-shrink-0 ml-2">
+              <X className="h-4 w-4" />
+            </button>
           </div>
         )}
 
@@ -698,7 +720,8 @@ function App() {
                   <tr>
                     <th className="px-3 py-2 rounded-l-lg">On</th>
                     <th className="px-3 py-2">Servicio</th>
-                    <th className="px-3 py-2 text-right rounded-r-lg">Meta Mes</th>
+                    <th className="px-3 py-2 text-right">Meta Mes</th>
+                    <th className="px-3 py-2 text-right rounded-r-lg">Progreso</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
@@ -726,8 +749,22 @@ function App() {
                             nm[idx].monthlyGoal = Number(e.target.value);
                             setMetas(nm);
                           }}
-                          className="w-24 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-right text-xs font-mono text-emerald-600 dark:text-emerald-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all" 
+                          className="w-24 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-right text-xs font-mono text-emerald-600 dark:text-emerald-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
                         />
+                      </td>
+                      <td className="px-3 py-2.5 min-w-[90px]">
+                        {(() => {
+                          const d = chartData.find(c => c.name === m.type);
+                          if (!d || d.meta === 0) return <span className="text-[10px] text-slate-400 dark:text-slate-600">—</span>;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 min-w-[36px]">
+                                <div className="h-1.5 rounded-full transition-all duration-500" style={{width: `${d.cumplimiento}%`, backgroundColor: d.color}} />
+                              </div>
+                              <span className="text-[10px] font-mono font-bold" style={{color: d.color}}>{d.cumplimiento}%</span>
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -759,13 +796,22 @@ function App() {
                     Archivos RIPS (.txt)
                   </label>
                   <div className="relative group">
-                    <input name="rips" type="file" multiple accept=".txt" className="hidden" id="file-rips" />
-                    <label 
-                      htmlFor="file-rips" 
-                      className="flex flex-col items-center justify-center w-full h-24 px-4 border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-transparent rounded-xl cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-300 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                    <input name="rips" type="file" multiple accept=".txt" className="hidden" id="file-rips" onChange={(e) => { const files = Array.from(e.target.files || []); setRipsFileNames(files.map(f => f.name)); }} />
+                    <label
+                      htmlFor="file-rips"
+                      className={`flex flex-col items-center justify-center w-full h-24 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-300 ${ripsFileNames.length > 0 ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/5' : 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-transparent hover:border-blue-500 dark:hover:border-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.1)]'}`}
                     >
-                      <FileText className="h-8 w-8 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors mb-2" />
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-300">Seleccionar TXT</span>
+                      {ripsFileNames.length > 0 ? (
+                        <>
+                          <CheckCircle className="h-6 w-6 text-blue-500 mb-1" />
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">{ripsFileNames.length} archivo{ripsFileNames.length > 1 ? 's' : ''} listo{ripsFileNames.length > 1 ? 's' : ''}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-8 w-8 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors mb-2" />
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-300">Seleccionar TXT</span>
+                        </>
+                      )}
                     </label>
                   </div>
                 </div>
@@ -775,13 +821,22 @@ function App() {
                     Maestro CUPS (.xlsx)
                   </label>
                   <div className="relative group">
-                    <input name="cups" type="file" accept=".xlsx" className="hidden" id="file-cups" />
-                    <label 
-                      htmlFor="file-cups" 
-                      className="flex flex-col items-center justify-center w-full h-24 px-4 border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-transparent rounded-xl cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-300 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                    <input name="cups" type="file" accept=".xlsx" className="hidden" id="file-cups" onChange={(e) => { setCupsFileName(e.target.files?.[0]?.name || ''); }} />
+                    <label
+                      htmlFor="file-cups"
+                      className={`flex flex-col items-center justify-center w-full h-24 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-300 ${cupsFileName ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/5' : 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-transparent hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.1)]'}`}
                     >
-                      <FileJson className="h-8 w-8 text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors mb-2" />
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium group-hover:text-emerald-600 dark:group-hover:text-emerald-300">Seleccionar Excel</span>
+                      {cupsFileName ? (
+                        <>
+                          <CheckCircle className="h-6 w-6 text-emerald-500 mb-1" />
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold text-center leading-tight truncate w-full px-2">{cupsFileName}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileJson className="h-8 w-8 text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors mb-2" />
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium group-hover:text-emerald-600 dark:group-hover:text-emerald-300">Seleccionar Excel</span>
+                        </>
+                      )}
                     </label>
                   </div>
                 </div>
@@ -877,6 +932,33 @@ function App() {
             color="orange"
           />
         </section>
+
+        {/* --- Empty State --- */}
+        {registros.length === 0 && (
+          <div className="glass-panel rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-5 border-2 border-dashed border-slate-300 dark:border-slate-700/70 animate-in fade-in duration-500">
+            <div className="p-4 bg-indigo-100 dark:bg-indigo-500/10 rounded-full">
+              <Activity className="h-10 w-10 text-indigo-500 dark:text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-1">Sin datos cargados</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">Sigue los pasos para comenzar el análisis de RIPS</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 mt-1 text-sm">
+              <div className="flex items-center gap-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-xl border border-blue-200 dark:border-blue-500/20">
+                <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                Configura las metas mensuales
+              </div>
+              <div className="flex items-center gap-2.5 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 px-4 py-3 rounded-xl border border-purple-200 dark:border-purple-500/20">
+                <span className="w-6 h-6 rounded-full bg-purple-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                Carga archivos RIPS + Maestro CUPS
+              </div>
+              <div className="flex items-center gap-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-4 py-3 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
+                <span className="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                Analiza KPIs y genera reportes
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* --- Charts --- */}
         {registros.length > 0 && (
@@ -1198,7 +1280,7 @@ function App() {
                            <td className="p-4 font-mono text-purple-600 dark:text-purple-300">{r.cups}</td>
                            <td className="p-4 truncate max-w-[250px]" title={r.nombre}>{r.nombre}</td>
                            <td className="p-4 text-xs">
-                              <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
+                              <span className={`px-2 py-1 rounded-md border font-medium ${getTipoBadgeClass(r.tipo)}`}>
                                 {r.tipo}
                               </span>
                            </td>
@@ -1329,38 +1411,51 @@ function App() {
   );
 }
 
+function getTipoBadgeClass(tipo: string): string {
+  const t = tipo.toUpperCase();
+  if (t.includes('CONSULTA') || t.includes('MEDICINA') || t.includes('GENERAL')) return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20';
+  if (t.includes('ESPECIALIZ') || t.includes('URGENCIA')) return 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/20';
+  if (t.includes('LABORATORIO') || t.includes('IMAGEN')) return 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/20';
+  if (t.includes('ODONTOLOG')) return 'bg-pink-100 dark:bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-500/20';
+  if (t.includes('QUIRURG') || t.includes('PROCEDIMIENTO')) return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20';
+  if (t.includes('APOYO')) return 'bg-teal-100 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/20';
+  if (t.includes('PEDIATRIA') || t.includes('PEDIATR')) return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/20';
+  if (t.includes('GINECOLOG') || t.includes('NUTRICION') || t.includes('PSICOLOG')) return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20';
+  return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
+}
+
 function KpiCard({ label, value, sub, icon, color, trend }: { label: string, value: string | number, sub?: string, icon: React.ReactNode, color: string, trend: string }) {
-  const colorClasses: Record<string, string> = {
-    blue: 'hover:shadow-blue-500/10 border-blue-200 dark:border-blue-500/20',
-    emerald: 'hover:shadow-emerald-500/10 border-emerald-200 dark:border-emerald-500/20',
-    purple: 'hover:shadow-purple-500/10 border-purple-200 dark:border-purple-500/20',
-    orange: 'hover:shadow-orange-500/10 border-orange-200 dark:border-orange-500/20',
+  const colorConfig: Record<string, { border: string; accent: string; iconBg: string }> = {
+    blue:    { border: 'border-blue-200 dark:border-blue-500/20',       accent: 'bg-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/10' },
+    emerald: { border: 'border-emerald-200 dark:border-emerald-500/20', accent: 'bg-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/10' },
+    purple:  { border: 'border-purple-200 dark:border-purple-500/20',   accent: 'bg-purple-500',  iconBg: 'bg-purple-100 dark:bg-purple-500/10' },
+    orange:  { border: 'border-orange-200 dark:border-orange-500/20',   accent: 'bg-orange-500',  iconBg: 'bg-orange-100 dark:bg-orange-500/10' },
   };
+  const cfg = colorConfig[color] || colorConfig.blue;
 
   const valStr = String(value);
   const len = valStr.length;
-  
-  // Dynamic font size based on length
-  let textClass = "text-3xl truncate"; // Default for numbers or short text
+  let textClass = "text-3xl truncate";
   if (len > 12 && len <= 25) textClass = "text-lg leading-tight line-clamp-2";
   else if (len > 25) textClass = "text-sm leading-tight line-clamp-3";
 
   return (
-    <div className={`glass-panel p-5 rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-opacity-50 ${colorClasses[color]} flex flex-col h-full min-h-[160px]`}>
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</span>
-        <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-500/10 flex-shrink-0 ml-2`}>
-          {icon}
+    <div className={`glass-panel rounded-2xl shadow-lg transition-all duration-300 hover:-translate-y-1 ${cfg.border} flex flex-col h-full min-h-[160px] overflow-hidden`}>
+      <div className={`h-1 w-full ${cfg.accent} opacity-80`} />
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex justify-between items-start mb-2">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</span>
+          <div className={`p-2 rounded-lg ${cfg.iconBg} flex-shrink-0 ml-2`}>
+            {icon}
+          </div>
         </div>
+        <div className="flex-1 flex items-center">
+          <div className={`font-bold text-slate-800 dark:text-white tracking-tight w-full ${textClass}`} title={valStr}>
+            {value}
+          </div>
+        </div>
+        {sub && <div className="text-xs text-slate-500 mt-2 font-medium border-t border-slate-200 dark:border-slate-800/50 pt-2 w-full truncate">{sub}</div>}
       </div>
-      
-      <div className="flex-1 flex items-center">
-         <div className={`font-bold text-slate-800 dark:text-white tracking-tight w-full ${textClass}`} title={valStr}>
-           {value}
-         </div>
-      </div>
-      
-      {sub && <div className="text-xs text-slate-500 mt-2 font-medium border-t border-slate-200 dark:border-slate-800/50 pt-2 w-full truncate">{sub}</div>}
     </div>
   );
 }
