@@ -8,9 +8,9 @@ import {
   Activity, Users, TrendingUp, AlertTriangle, CheckCircle, Server,
   BarChart3, UserCheck, FileJson, Sun, Moon, ChevronLeft, ChevronRight, Calendar, Stethoscope, FileSpreadsheet, FileWarning, X, Scissors, Search
 } from 'lucide-react';
-import { 
-  normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, 
-  edadDetallada, grupoEtarioDesdeFN 
+import {
+  normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, CUPS_TIPO_MAP,
+  edadDetallada, grupoEtarioDesdeFN
 } from './utils/logic';
 import { 
   ServiceTypeMeta, RipsRecord, UserRecord, MaestroCupItem, 
@@ -332,7 +332,7 @@ function App() {
           newRegistros.push({
             cups,
             paciente,
-            tipo: info.tipo,
+            tipo: CUPS_TIPO_MAP[cups] || info.tipo,  // mapa personalizado > Maestro CUPS
             nombre: info.nombre,
             fecha
           });
