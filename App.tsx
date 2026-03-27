@@ -1413,14 +1413,17 @@ function App() {
 
 function getTipoBadgeClass(tipo: string): string {
   const t = tipo.toUpperCase();
-  if (t.includes('CONSULTA') || t.includes('MEDICINA') || t.includes('GENERAL')) return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20';
-  if (t.includes('ESPECIALIZ') || t.includes('URGENCIA')) return 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/20';
-  if (t.includes('LABORATORIO') || t.includes('IMAGEN')) return 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/20';
+  if (t.includes('CONSULTA') || t.includes('MEDICINA GENERAL')) return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20';
   if (t.includes('ODONTOLOG')) return 'bg-pink-100 dark:bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-500/20';
-  if (t.includes('QUIRURG') || t.includes('PROCEDIMIENTO')) return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20';
-  if (t.includes('APOYO')) return 'bg-teal-100 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/20';
-  if (t.includes('PEDIATRIA') || t.includes('PEDIATR')) return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/20';
-  if (t.includes('GINECOLOG') || t.includes('NUTRICION') || t.includes('PSICOLOG')) return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20';
+  if (t.includes('ENFERMERIA')) return 'bg-sky-100 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/20';
+  if (t.includes('LABORATORIO')) return 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/20';
+  if (t.includes('IMAGENOLOG') || t.includes('RX')) return 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/20';
+  if (t.includes('GINECOLOG')) return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20';
+  if (t.includes('MEDICINA INTERNA')) return 'bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-500/20';
+  if (t.includes('TAB') || t.includes('TRANSPORTE')) return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/20';
+  if (t.includes('URGENCIA')) return 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/20';
+  if (t.includes('HOSP') || t.includes('HOSPITALIZ')) return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20';
+  if (t.includes('MEDICAMENTO')) return 'bg-teal-100 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/20';
   return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
 }
 
