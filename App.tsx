@@ -7,7 +7,7 @@ import {
   Upload, FileText, Database, Trash2, Save, Download,
   Activity, Users, TrendingUp, AlertTriangle, CheckCircle, Server,
   BarChart3, UserCheck, FileJson, Sun, Moon, ChevronLeft, ChevronRight, Calendar, Stethoscope, FileSpreadsheet, FileWarning, X, Scissors, Search,
-  Settings, Plus, Pencil, Building2, ClipboardList, LogOut, ShieldCheck, User, Lock, Eye, EyeOff
+  Settings, Plus, Pencil, Check, Building2, ClipboardList, LogOut, ShieldCheck, User, Lock, Eye, EyeOff
 } from 'lucide-react';
 import {
   normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, CUPS_TIPO_MAP,
@@ -158,6 +158,8 @@ function App() {
 
   // Mantenimiento – Custom CUPS
   const [customCupsList, setCustomCupsList] = useState<CustomCupsEntry[]>([]);
+  const [editingCups, setEditingCups] = useState<string | null>(null); // cups code being edited
+  const [editCupsEntry, setEditCupsEntry] = useState<CustomCupsEntry>({ cups: '', nombre: '', tipo: '' });
   const [newCupsEntry, setNewCupsEntry] = useState<CustomCupsEntry>({ cups: '', nombre: '', tipo: '' });
 
   // Mantenimiento – Servicios
@@ -2422,19 +2424,68 @@ function App() {
                           <th className="px-4 py-3 text-left">Código</th>
                           <th className="px-4 py-3 text-left">Nombre</th>
                           <th className="px-4 py-3 text-left">Tipo Servicio</th>
-                          <th className="px-4 py-3 text-center w-16">Eliminar</th>
+                          <th className="px-4 py-3 text-center w-24">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                        {customCupsList.map(e => (
+                        {customCupsList.map(e => editingCups === e.cups ? (
+                          <tr key={e.cups} className="bg-blue-50 dark:bg-blue-500/10">
+                            <td className="px-4 py-2 font-mono text-blue-600 dark:text-blue-400 font-medium">{e.cups}</td>
+                            <td className="px-4 py-2">
+                              <input
+                                type="text"
+                                value={editCupsEntry.nombre}
+                                onChange={ev => setEditCupsEntry(prev => ({ ...prev, nombre: ev.target.value }))}
+                                className="w-full bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <select
+                                value={editCupsEntry.tipo}
+                                onChange={ev => setEditCupsEntry(prev => ({ ...prev, tipo: ev.target.value }))}
+                                className="bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 w-full"
+                              >
+                                <option value="">— Seleccionar —</option>
+                                {metas.map(m => <option key={m.type} value={m.type}>{m.type}</option>)}
+                              </select>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    setCustomCupsList(prev => prev.map(x => x.cups === e.cups ? { ...editCupsEntry, cups: e.cups } : x));
+                                    setEditingCups(null);
+                                  }}
+                                  disabled={!editCupsEntry.tipo}
+                                  className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors disabled:opacity-40"
+                                  title="Guardar"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => setEditingCups(null)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Cancelar">
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
                           <tr key={e.cups} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                             <td className="px-4 py-3 font-mono text-blue-600 dark:text-blue-400 font-medium">{e.cups}</td>
                             <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{e.nombre || <span className="text-slate-400 italic text-xs">Sin nombre</span>}</td>
                             <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{e.tipo}</td>
                             <td className="px-4 py-3 text-center">
-                              <button onClick={() => handleDeleteCustomCups(e.cups)} className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => { setEditingCups(e.cups); setEditCupsEntry({ ...e }); }}
+                                  className="text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                                  title="Editar"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => handleDeleteCustomCups(e.cups)} className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Eliminar">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
