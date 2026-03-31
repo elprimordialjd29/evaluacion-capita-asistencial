@@ -218,18 +218,15 @@ function App() {
         const savedCustomCups = localStorage.getItem('customCups');
         if (savedCustomCups) setCustomCupsList(JSON.parse(savedCustomCups));
 
-        // Sync desde Supabase si localStorage está vacío
+        // Siempre sincronizar desde Supabase (fuente de verdad)
         const cloudKeys = ['prestadores', 'actas', 'appUsers', 'funcionarios', 'firmasGlobales', 'customCups'];
-        const missing = cloudKeys.filter(k => !localStorage.getItem(k));
-        if (missing.length > 0) {
-          const cloudData = await CloudStorage.getAll(cloudKeys);
-          if (cloudData['prestadores']) { setPrestadores(cloudData['prestadores']); localStorage.setItem('prestadores', JSON.stringify(cloudData['prestadores'])); }
-          if (cloudData['actas']) { setActas(cloudData['actas']); localStorage.setItem('actas', JSON.stringify(cloudData['actas'])); }
-          if (cloudData['appUsers']) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
-          if (cloudData['funcionarios']) { setFuncionarios(cloudData['funcionarios']); localStorage.setItem('funcionarios', JSON.stringify(cloudData['funcionarios'])); }
-          if (cloudData['firmasGlobales']) { setFirmasGlobales(cloudData['firmasGlobales']); localStorage.setItem('firmasGlobales', JSON.stringify(cloudData['firmasGlobales'])); }
-          if (cloudData['customCups']) { setCustomCupsList(cloudData['customCups']); localStorage.setItem('customCups', JSON.stringify(cloudData['customCups'])); }
-        }
+        const cloudData = await CloudStorage.getAll(cloudKeys);
+        if (cloudData['prestadores']?.length > 0) { setPrestadores(cloudData['prestadores']); localStorage.setItem('prestadores', JSON.stringify(cloudData['prestadores'])); }
+        if (cloudData['actas']?.length > 0) { setActas(cloudData['actas']); localStorage.setItem('actas', JSON.stringify(cloudData['actas'])); }
+        if (cloudData['appUsers']?.length > 0) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
+        if (cloudData['funcionarios']?.length > 0) { setFuncionarios(cloudData['funcionarios']); localStorage.setItem('funcionarios', JSON.stringify(cloudData['funcionarios'])); }
+        if (cloudData['firmasGlobales'] && Object.keys(cloudData['firmasGlobales']).length > 0) { setFirmasGlobales(cloudData['firmasGlobales']); localStorage.setItem('firmasGlobales', JSON.stringify(cloudData['firmasGlobales'])); }
+        if (cloudData['customCups']?.length > 0) { setCustomCupsList(cloudData['customCups']); localStorage.setItem('customCups', JSON.stringify(cloudData['customCups'])); }
 
         // Note: prestadores and actas are loaded via lazy useState initializers above
 
