@@ -188,7 +188,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
               </tr>
               <tr>
                 <td className={td + ' border-l-0 font-bold'}>PORCENTAJE DE CUMPLIMIENTO</td>
-                <td className={td + ' border-r-0 text-right font-bold'} style={{ color: pctColor(totalCumpl) }}>{totalCumpl}%</td>
+                <td className={td + ' border-r-0 text-right font-bold'} style={{ color: '#000000' }}>{totalCumpl}%</td>
               </tr>
             </tbody>
           </table>
@@ -210,7 +210,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
                     <td className={td + ' border-l-0'}>{srv.tipo}</td>
                     <td className={td + ' text-right'}>{srv.programado.toLocaleString()}</td>
                     <td className={td + ' text-right'}>{srv.ejecutado.toLocaleString()}</td>
-                    <td className={td + ' border-r-0 text-right font-bold'} style={{ color: pctColor(p) }}>{p}%</td>
+                    <td className={td + ' border-r-0 text-right font-bold'} style={{ color: '#000000' }}>{p}%</td>
                   </tr>
                 );
               })}
@@ -218,7 +218,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
                 <td className={td + ' border-l-0 uppercase'}>TOTAL ASISTENCIAL</td>
                 <td className={td + ' text-right'}>{totalProg.toLocaleString()}</td>
                 <td className={td + ' text-right'}>{totalEjec.toLocaleString()}</td>
-                <td className={td + ' border-r-0 text-right'} style={{ color: pctColor(totalCumpl) }}>{totalCumpl}%</td>
+                <td className={td + ' border-r-0 text-right'} style={{ color: '#000000' }}>{totalCumpl}%</td>
               </tr>
             </tbody>
           </table>
