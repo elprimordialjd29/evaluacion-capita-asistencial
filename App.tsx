@@ -254,6 +254,16 @@ function App() {
     initData();
   }, []);
 
+  // Auto-actualizar scale según meses detectados en los RIPS cargados
+  useEffect(() => {
+    const monthSet = new Set<string>();
+    registros.forEach(r => {
+      if (r.fecha && /^\d{4}-\d{2}/.test(r.fecha)) monthSet.add(r.fecha.substring(0, 7));
+    });
+    const n = monthSet.size;
+    if (n > 0) setScale(n);
+  }, [registros]);
+
   // Reset pagination when data changes
   useEffect(() => {
     setPagePat(1);
@@ -1791,9 +1801,16 @@ function App() {
         {registros.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
             <div className="glass-panel rounded-2xl p-6 shadow-xl h-[550px]">
-              <h3 className="text-slate-800 dark:text-slate-100 font-bold mb-6 text-sm flex items-center gap-2">
-                <div className="w-1 h-4 bg-blue-500 rounded-full"></div> Producción (Cantidad)
-              </h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-slate-800 dark:text-slate-100 font-bold text-sm flex items-center gap-2">
+                  <div className="w-1 h-4 bg-blue-500 rounded-full"></div> Producción (Cantidad)
+                </h3>
+                {scale > 1 && (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
+                    Meta × {scale} {scale === 12 ? 'meses (anual)' : `meses`}
+                  </span>
+                )}
+              </div>
               <div className="h-[450px] w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 120 }}>
