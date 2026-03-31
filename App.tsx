@@ -359,6 +359,13 @@ function App() {
       setRegistros([]);
       setUsuariosMap(new Map());
       setDetectedPrestadorId(null);
+      setRipsFileNames([]);
+      setJsonFileNames([]);
+      // Reset file inputs
+      const ripsInput = document.getElementById('file-rips') as HTMLInputElement;
+      const jsonInput = document.getElementById('file-json') as HTMLInputElement;
+      if (ripsInput) ripsInput.value = '';
+      if (jsonInput) jsonInput.value = '';
       await StorageService.clearData();
       setMessage({ type: 'success', text: 'Base de datos limpia correctamente.' });
     }
@@ -455,11 +462,13 @@ function App() {
   };
 
   const handleLoadPrestadorMetas = (p: Prestador) => {
-    const savedMap = new Map(p.metas.map(m => [m.type, m]));
+    const savedMap = new Map((p.metas || []).map(m => [m.type, m]));
+    // Keep all global types, also include custom types from prestador not in globals
+    const globalTypes = new Set(metas.map(m => m.type));
     const merged = metas.map(m => savedMap.get(m.type) ?? { type: m.type, monthlyGoal: 0, active: true });
-    setMetas(merged);
-    setActiveTab('mantenimiento');
-    setMaintTab('servicios');
+    const extraFromPrestador = (p.metas || []).filter(m => !globalTypes.has(m.type));
+    setMetas([...merged, ...extraFromPrestador]);
+    setDetectedPrestadorId(p.id);
     setMessage({ type: 'success', text: `Metas de "${p.nombre}" cargadas.` });
   };
 
@@ -1540,7 +1549,7 @@ function App() {
               <Database className="h-5 w-5 text-blue-500 dark:text-blue-400" /> Carga de Datos
             </h2>
             
-            <form 
+            <form
               className="flex-1 flex flex-col gap-6 justify-between"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1551,6 +1560,26 @@ function App() {
                 processFiles(rFiles, cFile, jFiles);
               }}
             >
+              {/* Prestador selector */}
+              {prestadores.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prestador</label>
+                  <select
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={detectedPrestadorId || ''}
+                    onChange={e => {
+                      const p = prestadores.find(x => x.id === e.target.value);
+                      if (p) handleLoadPrestadorMetas(p);
+                      else setDetectedPrestadorId(null);
+                    }}
+                  >
+                    <option value="">— Seleccionar prestador —</option>
+                    {prestadores.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre} — {p.contrato}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* TXT Drop Zone */}
                 <div className="space-y-2">
