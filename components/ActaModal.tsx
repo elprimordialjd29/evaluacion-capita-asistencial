@@ -153,7 +153,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
                     <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                     <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
                     <Bar dataKey="pct" radius={[3, 3, 0, 0]} minPointSize={3} isAnimationActive={false}>
-                      <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 8, fontWeight: 'bold' }} />
+                      <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 8, fontWeight: 'bold', fill: '#000000' }} />
                       {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                     </Bar>
                   </BarChart>
