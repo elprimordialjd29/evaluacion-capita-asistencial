@@ -1291,15 +1291,6 @@ function App() {
               {isSaving ? <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"/> : <Server className="h-4 w-4" />}
               <span>{isSaving ? 'Sincronizando...' : 'Sincronizar'}</span>
             </button>
-            {isAdmin && (
-              <button
-                onClick={handleClearData}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800/50 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-500/30 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow active:scale-95"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Limpiar</span>
-              </button>
-            )}
           </div>
         </div>
         {/* Tab Navigation */}
@@ -1595,20 +1586,28 @@ function App() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-auto">
-                <div className="col-span-2 flex flex-col gap-1">
-                   <button 
-                    type="submit" 
+                <div className="col-span-2 flex gap-2">
+                  <button
+                    type="submit"
                     disabled={isProcessing}
-                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                   >
                     {isProcessing ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <>
-                        <Upload className="h-4 w-4" /> Procesar Data
-                      </>
+                      <><Upload className="h-4 w-4" /> Procesar Data</>
                     )}
                   </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={handleClearData}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800/50 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-500/30 rounded-xl text-sm font-medium transition-all shadow-sm"
+                      title="Limpiar datos"
+                    >
+                      <Trash2 className="h-4 w-4" /> Limpiar
+                    </button>
+                  )}
                 </div>
 
                  <div className="flex flex-col gap-1">
