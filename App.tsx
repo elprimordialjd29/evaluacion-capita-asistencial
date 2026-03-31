@@ -1143,10 +1143,7 @@ function App() {
   const currentRipsData = filteredRawRips.slice((pageRips - 1) * ITEMS_PER_PAGE, pageRips * ITEMS_PER_PAGE);
 
   // --- Helper for Charts ---
-  const formatXAxis = (tickItem: string) => {
-    if (!tickItem) return '';
-    return tickItem.length > 18 ? `${tickItem.substring(0, 18)}...` : tickItem;
-  };
+  const formatXAxis = (tickItem: string) => tickItem || '';
   
   // Theme helpers for charts
   const chartColors = theme === 'dark' 
@@ -1847,18 +1844,18 @@ function App() {
               </h3>
               <div className="h-[450px] w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 120 }}>
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 160 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
+                    <XAxis
+                      dataKey="name"
                       stroke={chartColors.text}
-                      fontSize={11} 
-                      tickLine={false} 
+                      fontSize={10}
+                      tickLine={false}
                       axisLine={false}
                       angle={-45}
                       textAnchor="end"
                       interval={0}
-                      height={100} 
+                      height={150}
                       tickFormatter={formatXAxis}
                     />
                     <YAxis domain={[0, 100]} stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} />
