@@ -1,3 +1,11 @@
+export interface AppUser {
+  id: string;
+  username: string;
+  password: string;
+  nombre: string;
+  role: 'admin' | 'general';
+}
+
 export interface ServiceTypeMeta {
   type: string;
   monthlyGoal: number;
@@ -77,4 +85,55 @@ export interface DuplicateItem {
   nombre_cups: string;
   fecha: string;
   repeticiones: number;
+}
+
+export interface Prestador {
+  id: string;
+  nombre: string;
+  nit: string;
+  departamento: string;
+  municipio: string;
+  contrato: string;
+  vigencia: string;
+  regimen: string;
+  metas: ServiceTypeMeta[];
+}
+
+export interface CustomCupsEntry {
+  cups: string;
+  nombre: string;
+  tipo: string;
+}
+
+export interface ActaServicio {
+  tipo: string;
+  programado: number;
+  ejecutado: number;
+}
+
+export interface Acta {
+  id: string;
+  numero: string;
+  prestadorId: string;
+  empresa: string;
+  nit: string;
+  lugar: string;
+  municipio: string;
+  departamento: string;
+  contrato: string;
+  regimen: string;
+  periodoEvaluado: string;
+  vigencia: string;
+  coordinador: string;
+  funcionario: string;
+  fechaActa: string;
+  puntosTratar: string;
+  objetivo: string;
+  desarrolloYConclusiones: string;
+  desarrolloConclusionesPost: string;
+  servicios: ActaServicio[];
+  observaciones: string;
+  repLegalIPS: string;
+  repLegalEPS: string;
+  createdAt: string;
 }

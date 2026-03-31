@@ -56,6 +56,46 @@
         scrollbar-width: thin;
         scrollbar-color: var(--scroll-thumb) var(--scroll-bg);
       }
+
+      @media print {
+        /* Hide everything except the acta preview */
+        body > * { display: none !important; }
+        #acta-print-portal { display: block !important; }
+
+        #acta-preview-content {
+          display: block !important;
+          position: static !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 10mm !important;
+          box-sizing: border-box !important;
+          background: white !important;
+          color: black !important;
+          font-size: 9px !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+
+        /* Images must render in print */
+        #acta-preview-content img {
+          display: block !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        /* Background colors in cells must print */
+        #acta-preview-content * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        /* Page 2 forces a new page */
+        .print-page-break { break-before: page !important; page-break-before: always !important; }
+
+        @page { margin: 0; size: letter portrait; }
+      }
     </style>
   <script type="importmap">
 {
@@ -75,6 +115,7 @@
 </head>
   <body class="bg-slate-50 text-slate-800 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-slate-950 dark:to-black dark:text-slate-200 antialiased min-h-screen selection:bg-blue-500/30 transition-colors duration-300">
     <div id="root"></div>
+    <div id="acta-print-portal" style="display:none"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
