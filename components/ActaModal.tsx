@@ -308,8 +308,8 @@ interface Props {
   funcionarios?: string[];
   onAddFuncionario?: (name: string) => void;
   onRemoveFuncionario?: (name: string) => void;
-  firmasGlobales?: { repLegalEPSI: string; coordinador: string };
-  onSaveFirmaGlobal?: (key: 'repLegalEPSI' | 'coordinador', val: string) => void;
+  firmasGlobales?: { repLegalEPSI: string; coordinador: string; lugarActa?: string };
+  onSaveFirmaGlobal?: (key: 'repLegalEPSI' | 'coordinador' | 'lugarActa', val: string) => void;
 }
 
 export default function ActaModal({
@@ -485,7 +485,18 @@ export default function ActaModal({
               </div>
               <div>
                 <label className={lbl}>Lugar</label>
-                <input className={inp} value={acta.lugar} onChange={e => set('lugar', e.target.value)} placeholder="Ciudad donde se realizó el acta" />
+                <div className="flex gap-1.5">
+                  <input className={inp} value={acta.lugar} onChange={e => set('lugar', e.target.value)} placeholder="Ciudad donde se realizó el acta" />
+                  <button
+                    type="button"
+                    title="Guardar como predeterminado para todas las actas"
+                    onClick={() => onSaveFirmaGlobal?.('lugarActa', acta.lugar)}
+                    className="flex-shrink-0 px-2.5 py-1.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-200 transition-colors border border-indigo-200 dark:border-indigo-500/30"
+                  >💾</button>
+                </div>
+                {firmasGlobales?.lugarActa && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">Global: <span className="font-medium text-slate-500 dark:text-slate-400">{firmasGlobales.lugarActa}</span></p>
+                )}
               </div>
               <div>
                 <label className={lbl}>N° Contrato</label>

@@ -179,8 +179,8 @@ function App() {
   const [funcionarios, setFuncionarios] = useState<string[]>(() => {
     try { const s = localStorage.getItem('funcionarios'); return s ? JSON.parse(s) : []; } catch { return []; }
   });
-  const [firmasGlobales, setFirmasGlobales] = useState<{ repLegalEPSI: string; coordinador: string }>(() => {
-    try { const s = localStorage.getItem('firmasGlobales'); return s ? JSON.parse(s) : { repLegalEPSI: '', coordinador: '' }; } catch { return { repLegalEPSI: '', coordinador: '' }; }
+  const [firmasGlobales, setFirmasGlobales] = useState<{ repLegalEPSI: string; coordinador: string; lugarActa: string }>(() => {
+    try { const s = localStorage.getItem('firmasGlobales'); return s ? JSON.parse(s) : { repLegalEPSI: '', coordinador: '', lugarActa: '' }; } catch { return { repLegalEPSI: '', coordinador: '', lugarActa: '' }; }
   });
 
   // Auth State
@@ -585,7 +585,7 @@ function App() {
       prestadorId: p.id,
       empresa: p.nombre,
       nit: p.nit,
-      lugar: p.municipio,
+      lugar: firmasGlobales.lugarActa || p.municipio,
       municipio: p.municipio,
       departamento: p.departamento,
       contrato: p.contrato,
@@ -644,7 +644,7 @@ function App() {
       prestadorId: '',
       empresa: '',
       nit: '',
-      lugar: '',
+      lugar: firmasGlobales.lugarActa || '',
       municipio: '',
       departamento: '',
       contrato: '',
@@ -727,7 +727,7 @@ function App() {
   const handleRemoveFuncionario = (nombre: string) => {
     setFuncionarios(prev => prev.filter(f => f !== nombre));
   };
-  const handleSaveFirmaGlobal = (key: 'repLegalEPSI' | 'coordinador', val: string) => {
+  const handleSaveFirmaGlobal = (key: 'repLegalEPSI' | 'coordinador' | 'lugarActa', val: string) => {
     setFirmasGlobales(prev => ({ ...prev, [key]: val }));
   };
 
