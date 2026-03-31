@@ -15,7 +15,7 @@ export const pct = (srv: ActaServicio): number => {
 };
 
 const pctColor = (p: number) =>
-  p >= 100 ? '#16a34a' : p >= 80 ? '#ca8a04' : '#dc2626';
+  p >= 100 ? '#6ee7b7' : p >= 80 ? '#ca8a04' : '#dc2626';
 
 // ─── Static boilerplate (page 2 body text from PDF) ─────────────────────────
 
@@ -47,7 +47,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
   const chartData = acta.servicios.map(srv => ({
     tipo: srv.tipo,
     pct: pct(srv),
-    fill: '#16a34a',
+    fill: '#6ee7b7',
   }));
 
   const th = 'border border-gray-500 bg-gray-200 px-2 py-1 text-center font-bold text-[9px] uppercase';
@@ -601,7 +601,7 @@ export default function ActaModal({
                 ].map(({ label, value, color }) => (
                   <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-700">
                     <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
-                    <div className={`text-lg font-mono font-bold ${color}`} style={label === '% Cumplimiento' ? { color: totalCumpl >= 100 ? '#16a34a' : totalCumpl >= 80 ? '#ca8a04' : '#dc2626' } : {}}>
+                    <div className={`text-lg font-mono font-bold ${color}`} style={label === '% Cumplimiento' ? { color: totalCumpl >= 100 ? '#6ee7b7' : totalCumpl >= 80 ? '#ca8a04' : '#dc2626' } : {}}>
                       {value}
                     </div>
                   </div>
