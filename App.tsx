@@ -2901,24 +2901,15 @@ function App() {
                   </button>
                 )}
                 {prestadores.length > 0 && (
-                  <div className="flex gap-2 items-center">
-                    <select id="acta-tab-select2"
-                      className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/30 outline-none min-w-[180px]"
-                      defaultValue="">
-                      <option value="" disabled>— Prestador —</option>
-                      {prestadores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                    </select>
-                    <button
-                      onClick={() => {
-                        const sel = (document.getElementById('acta-tab-select2') as HTMLSelectElement)?.value;
-                        const p = prestadores.find(x => x.id === sel);
-                        if (!p) { setMessage({ type: 'error', text: 'Selecciona un prestador.' }); return; }
-                        handleGenerarActa(p);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all shadow-md shadow-indigo-500/20 whitespace-nowrap">
-                      <Plus className="h-4 w-4" /> Nueva Acta
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      const p = detectedPrestadorId ? prestadores.find(x => x.id === detectedPrestadorId) : null;
+                      if (p) handleGenerarActa(p);
+                      else setMessage({ type: 'error', text: 'Selecciona un prestador en el Dashboard primero.' });
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all shadow-md shadow-indigo-500/20 whitespace-nowrap">
+                    <Plus className="h-4 w-4" /> Nueva Acta
+                  </button>
                 )}
                 {prestadores.length === 0 && (
                   <button onClick={() => { setActiveTab('mantenimiento'); setMaintTab('prestadores'); }}
