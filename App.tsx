@@ -1577,7 +1577,7 @@ function App() {
                   >
                     <option value="">— Seleccionar prestador —</option>
                     {prestadores.map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre} — {p.contrato}</option>
+                      <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} — {p.regimen || 'SUBSIDIADO'}</option>
                     ))}
                   </select>
                 </div>
