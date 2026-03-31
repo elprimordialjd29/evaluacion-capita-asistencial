@@ -105,9 +105,19 @@ function App() {
   });
 
   const [scale, setScale] = useState<number>(1);
-  const [metas, setMetas] = useState<ServiceTypeMeta[]>(
-    TIPOS_SERVICIOS_DEFAULT.map(t => ({ type: t, monthlyGoal: 0, active: true }))
-  );
+  const [metas, setMetas] = useState<ServiceTypeMeta[]>(() => {
+    try {
+      const saved = localStorage.getItem('rips_dashboard_metas');
+      if (saved) {
+        const parsed: ServiceTypeMeta[] = JSON.parse(saved);
+        if (parsed.length > 0) {
+          const savedMap = new Map(parsed.map(m => [m.type, m]));
+          return TIPOS_SERVICIOS_DEFAULT.map(t => savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true });
+        }
+      }
+    } catch { /* ignore */ }
+    return TIPOS_SERVICIOS_DEFAULT.map(t => ({ type: t, monthlyGoal: 0, active: true }));
+  });
   
   const [registros, setRegistros] = useState<RipsRecord[]>([]);
   const [usuariosMap, setUsuariosMap] = useState<Map<string, UserRecord>>(new Map());
