@@ -144,12 +144,12 @@ export function ActaPreview({ acta }: { acta: Acta }) {
           {chartData.length > 0 && (
             <div className="border-t border-gray-300">
               <div className="text-center pt-1 text-[9px] font-semibold text-gray-700">Servicios Asistenciales</div>
-              <div style={{ width: '100%', height: Math.max(180, chartData.length * 28 + 50) }}>
+              <div style={{ width: '100%', height: Math.max(260, chartData.length * 40 + 80) }}>
                 <ResponsiveContainer width="100%" height="100%" minWidth={200}>
                   <BarChart data={chartData} margin={{ top: 16, right: 30, left: 10, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="tipo" tick={{ fontSize: 7, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} />
-                    <YAxis domain={[0, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 8 }} />
+                    <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 8 }} />
                     <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                     <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
                     <Bar dataKey="pct" radius={[3, 3, 0, 0]} minPointSize={3} isAnimationActive={false}>
