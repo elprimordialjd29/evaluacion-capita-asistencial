@@ -19,6 +19,7 @@ import {
   Prestador, CustomCupsEntry, Acta, ActaServicio, AppUser
 } from './types';
 import { StorageService } from './services/storageService';
+import { CloudStorage } from './services/supabaseClient';
 import ActaModal from './components/ActaModal';
 
 const MESES_NOMBRES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -216,6 +217,20 @@ function App() {
         // Load Custom CUPS
         const savedCustomCups = localStorage.getItem('customCups');
         if (savedCustomCups) setCustomCupsList(JSON.parse(savedCustomCups));
+
+        // Sync desde Supabase si localStorage está vacío
+        const cloudKeys = ['prestadores', 'actas', 'appUsers', 'funcionarios', 'firmasGlobales', 'customCups'];
+        const missing = cloudKeys.filter(k => !localStorage.getItem(k));
+        if (missing.length > 0) {
+          const cloudData = await CloudStorage.getAll(cloudKeys);
+          if (cloudData['prestadores']) { setPrestadores(cloudData['prestadores']); localStorage.setItem('prestadores', JSON.stringify(cloudData['prestadores'])); }
+          if (cloudData['actas']) { setActas(cloudData['actas']); localStorage.setItem('actas', JSON.stringify(cloudData['actas'])); }
+          if (cloudData['appUsers']) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
+          if (cloudData['funcionarios']) { setFuncionarios(cloudData['funcionarios']); localStorage.setItem('funcionarios', JSON.stringify(cloudData['funcionarios'])); }
+          if (cloudData['firmasGlobales']) { setFirmasGlobales(cloudData['firmasGlobales']); localStorage.setItem('firmasGlobales', JSON.stringify(cloudData['firmasGlobales'])); }
+          if (cloudData['customCups']) { setCustomCupsList(cloudData['customCups']); localStorage.setItem('customCups', JSON.stringify(cloudData['customCups'])); }
+        }
+
         // Note: prestadores and actas are loaded via lazy useState initializers above
 
         // Load Session
@@ -278,29 +293,35 @@ function App() {
   // Save prestadores
   useEffect(() => {
     localStorage.setItem('prestadores', JSON.stringify(prestadores));
+    CloudStorage.set('prestadores', prestadores);
   }, [prestadores]);
 
   // Save users
   useEffect(() => {
     localStorage.setItem('appUsers', JSON.stringify(users));
+    CloudStorage.set('appUsers', users);
   }, [users]);
 
   // Save funcionarios y firmas globales
   useEffect(() => {
     localStorage.setItem('funcionarios', JSON.stringify(funcionarios));
+    CloudStorage.set('funcionarios', funcionarios);
   }, [funcionarios]);
   useEffect(() => {
     localStorage.setItem('firmasGlobales', JSON.stringify(firmasGlobales));
+    CloudStorage.set('firmasGlobales', firmasGlobales);
   }, [firmasGlobales]);
 
   // Save custom CUPS
   useEffect(() => {
     localStorage.setItem('customCups', JSON.stringify(customCupsList));
+    CloudStorage.set('customCups', customCupsList);
   }, [customCupsList]);
 
   // Save actas
   useEffect(() => {
     localStorage.setItem('actas', JSON.stringify(actas));
+    CloudStorage.set('actas', actas);
   }, [actas]);
 
   // --- Handlers ---
