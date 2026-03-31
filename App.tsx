@@ -158,6 +158,7 @@ function App() {
   const [editingActa, setEditingActa] = useState<Acta | null>(null);
   const [inlineActa, setInlineActa] = useState<Acta | null>(null); // inline editor in Actas tab
   const [selectedDashPrestador, setSelectedDashPrestador] = useState<string | null>(null);
+  const [searchPrestador, setSearchPrestador] = useState('');
 
   // Firmas y funcionarios globales (persistidos en localStorage)
   const [funcionarios, setFuncionarios] = useState<string[]>(() => {
@@ -1394,7 +1395,7 @@ function App() {
 
           {/* ── Prestadores Panel ── */}
           <section className="glass-panel rounded-2xl p-5 shadow-xl relative overflow-hidden">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-indigo-500 dark:text-indigo-400" /> Prestadores
               </h2>
@@ -1407,6 +1408,19 @@ function App() {
                 </button>
               )}
             </div>
+
+            {prestadores.length > 0 && (
+              <div className="relative mb-3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por contrato o nombre..."
+                  value={searchPrestador}
+                  onChange={e => setSearchPrestador(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+            )}
 
             {prestadores.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
@@ -1421,7 +1435,11 @@ function App() {
               </div>
             ) : (
               <div className="space-y-2 max-h-[280px] overflow-y-auto custom-scroll pr-1">
-                {prestadores.map(p => {
+                {prestadores.filter(p => {
+                  if (!searchPrestador.trim()) return true;
+                  const q = searchPrestador.toLowerCase();
+                  return p.nombre.toLowerCase().includes(q) || p.contrato.toLowerCase().includes(q);
+                }).map(p => {
                   const pActas = actas.filter(a => a.prestadorId === p.id);
                   const isSelected = selectedDashPrestador === p.id;
                   return (
