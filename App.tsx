@@ -93,6 +93,9 @@ function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u:
 }
 
 function App() {
+  // Evita guardar en Supabase durante la carga inicial
+  const cloudInitialized = React.useRef(false);
+
   // --- State ---
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
@@ -228,6 +231,9 @@ function App() {
         if (cloudData['firmasGlobales'] && Object.keys(cloudData['firmasGlobales']).length > 0) { setFirmasGlobales(cloudData['firmasGlobales']); localStorage.setItem('firmasGlobales', JSON.stringify(cloudData['firmasGlobales'])); }
         if (cloudData['customCups']?.length > 0) { setCustomCupsList(cloudData['customCups']); localStorage.setItem('customCups', JSON.stringify(cloudData['customCups'])); }
 
+        // A partir de aquí, los cambios de estado sí se guardan en Supabase
+        cloudInitialized.current = true;
+
         // Note: prestadores and actas are loaded via lazy useState initializers above
 
         // Load Session
@@ -290,35 +296,35 @@ function App() {
   // Save prestadores
   useEffect(() => {
     localStorage.setItem('prestadores', JSON.stringify(prestadores));
-    CloudStorage.set('prestadores', prestadores);
+    if (cloudInitialized.current) CloudStorage.set('prestadores', prestadores);
   }, [prestadores]);
 
   // Save users
   useEffect(() => {
     localStorage.setItem('appUsers', JSON.stringify(users));
-    CloudStorage.set('appUsers', users);
+    if (cloudInitialized.current) CloudStorage.set('appUsers', users);
   }, [users]);
 
   // Save funcionarios y firmas globales
   useEffect(() => {
     localStorage.setItem('funcionarios', JSON.stringify(funcionarios));
-    CloudStorage.set('funcionarios', funcionarios);
+    if (cloudInitialized.current) CloudStorage.set('funcionarios', funcionarios);
   }, [funcionarios]);
   useEffect(() => {
     localStorage.setItem('firmasGlobales', JSON.stringify(firmasGlobales));
-    CloudStorage.set('firmasGlobales', firmasGlobales);
+    if (cloudInitialized.current) CloudStorage.set('firmasGlobales', firmasGlobales);
   }, [firmasGlobales]);
 
   // Save custom CUPS
   useEffect(() => {
     localStorage.setItem('customCups', JSON.stringify(customCupsList));
-    CloudStorage.set('customCups', customCupsList);
+    if (cloudInitialized.current) CloudStorage.set('customCups', customCupsList);
   }, [customCupsList]);
 
   // Save actas
   useEffect(() => {
     localStorage.setItem('actas', JSON.stringify(actas));
-    CloudStorage.set('actas', actas);
+    if (cloudInitialized.current) CloudStorage.set('actas', actas);
   }, [actas]);
 
   // --- Handlers ---
