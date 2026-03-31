@@ -1699,40 +1699,17 @@ function App() {
                 )}
                 {registros.length > 0 && (
                   <div className="col-span-2 flex flex-col gap-1 mt-1">
-                    {prestadores.length === 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => { setActiveTab('mantenimiento'); setMaintTab('prestadores'); setMessage({ type: 'info', text: 'Crea un prestador primero para generar el acta.' }); }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all"
-                      >
-                        <ClipboardList className="h-4 w-4" /> Generar Acta — Configura un prestador primero
-                      </button>
-                    ) : (
-                      <div className="flex gap-2 items-center">
-                        <select
-                          id="acta-prestador-select"
-                          className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 outline-none"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>— Seleccionar prestador —</option>
-                          {prestadores.map(p => (
-                            <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} — {p.regimen || 'SUBSIDIADO'}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const sel = (document.getElementById('acta-prestador-select') as HTMLSelectElement)?.value;
-                            const p = prestadores.find(x => x.id === sel);
-                            if (!p) { setMessage({ type: 'error', text: 'Selecciona un prestador primero.' }); return; }
-                            handleGenerarActa(p);
-                          }}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-all shadow-md shadow-indigo-500/20 whitespace-nowrap"
-                        >
-                          <ClipboardList className="h-4 w-4" /> Generar Acta
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const p = detectedPrestadorId ? prestadores.find(x => x.id === detectedPrestadorId) : null;
+                        if (p) handleGenerarActa(p);
+                        else setMessage({ type: 'error', text: 'Selecciona un prestador arriba primero.' });
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-all shadow-md shadow-indigo-500/20"
+                    >
+                      <ClipboardList className="h-4 w-4" /> Generar Acta
+                    </button>
                   </div>
                 )}
               </div>
