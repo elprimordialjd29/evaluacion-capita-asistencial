@@ -10,6 +10,7 @@ export interface ServiceTypeMeta {
   type: string;
   monthlyGoal: number;
   active: boolean;
+  renuencias?: number;
 }
 
 export interface ProcessingStats {

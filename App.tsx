@@ -1026,7 +1026,8 @@ function App() {
     const chartData: ChartDataPoint[] = metas
       .filter(m => m.active)
       .map(m => {
-        const ejecutado = typeCount[m.type] || 0;
+        const ejecutadoRips = typeCount[m.type] || 0;
+        const ejecutado = ejecutadoRips + (m.renuencias || 0);
         const totalMeta = m.monthlyGoal * scale;
         let pct = totalMeta > 0 ? Math.round((ejecutado / totalMeta) * 100) : 0;
         const capPct = pct > 100 ? 100 : pct;
@@ -1687,6 +1688,44 @@ function App() {
             </form>
           </section>
         </div>
+
+        {/* --- Renuencias y Búsquedas Fallidas (Admin only) --- */}
+        {isAdmin && metas.some(m => m.active) && (
+          <section className="glass-panel rounded-2xl p-5 shadow-xl animate-in fade-in duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <FileWarning className="h-5 w-5 text-amber-500" />
+                Renuencias y Búsquedas Fallidas
+              </h2>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-2 py-0.5 rounded-full font-semibold">Se suman al ejecutado</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {metas.filter(m => m.active).map((m, idx) => {
+                const ripsCount = chartData.find(c => c.name === m.type)?.ejecutado ?? 0;
+                const ren = m.renuencias || 0;
+                const total = ripsCount;
+                return (
+                  <div key={idx} className="flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide leading-tight line-clamp-2">{m.type}</span>
+                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="font-mono text-slate-700 dark:text-slate-300">{(ripsCount - ren).toLocaleString()}</span>
+                      <span>RIPS</span>
+                      {ren > 0 && <span className="text-amber-500 font-bold">+{ren.toLocaleString()}</span>}
+                    </div>
+                    <input
+                      type="number" min="0"
+                      value={ren}
+                      onChange={e => setMetas(prev => prev.map(x => x.type === m.type ? { ...x, renuencias: Math.max(0, Number(e.target.value)) } : x))}
+                      className="w-full bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 rounded-lg px-2 py-1 text-center text-sm font-bold text-amber-600 dark:text-amber-400 focus:ring-2 focus:ring-amber-500/30 outline-none"
+                      placeholder="0"
+                    />
+                    <span className="text-[10px] text-center text-slate-400">Total: <strong className="text-slate-700 dark:text-slate-200">{total.toLocaleString()}</strong></span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* --- KPI Cards --- */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -2458,6 +2497,7 @@ function App() {
                         <th className="px-4 py-3 text-left w-10">#</th>
                         <th className="px-4 py-3 text-left">Tipo de Servicio</th>
                         <th className="px-4 py-3 text-right">Meta Mensual</th>
+                        {isAdmin && <th className="px-4 py-3 text-right text-amber-600 dark:text-amber-400">Renuencias y Búsquedas Fallidas</th>}
                         <th className="px-4 py-3 text-center">Estado</th>
                         <th className="px-4 py-3 text-center w-16">Acción</th>
                       </tr>
@@ -2473,6 +2513,16 @@ function App() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{m.monthlyGoal || '—'}</td>
+                          {isAdmin && (
+                            <td className="px-4 py-3 text-right">
+                              <input
+                                type="number" min="0"
+                                value={m.renuencias || 0}
+                                onChange={e => setMetas(prev => prev.map((x, i) => i === idx ? { ...x, renuencias: Number(e.target.value) } : x))}
+                                className="w-24 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 rounded-md px-2 py-1 text-right text-xs font-mono text-amber-600 dark:text-amber-400 focus:ring-1 focus:ring-amber-500 outline-none"
+                              />
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${m.active ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                               {m.active ? 'Activo' : 'Inactivo'}
