@@ -1436,6 +1436,7 @@ function App() {
                           <div className="font-semibold text-sm text-slate-800 dark:text-slate-100">{p.nombre}</div>
                           <div className="flex gap-2 mt-0.5 flex-wrap">
                             <span className="text-[10px] text-slate-400 font-mono">NIT: {p.nit}</span>
+                            {p.contrato && <span className="text-[10px] text-slate-400">📋 {p.contrato}</span>}
                             {p.regimen && (
                               <span className={`text-[10px] font-bold ${p.regimen === 'CONTRIBUTIVO' ? 'text-orange-500' : 'text-emerald-500'}`}>
                                 {p.regimen}
@@ -1645,7 +1646,7 @@ function App() {
                         >
                           <option value="" disabled>— Seleccionar prestador —</option>
                           {prestadores.map(p => (
-                            <option key={p.id} value={p.id}>{p.nombre} ({p.contrato})</option>
+                            <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} — {p.regimen || 'SUBSIDIADO'}</option>
                           ))}
                         </select>
                         <button
