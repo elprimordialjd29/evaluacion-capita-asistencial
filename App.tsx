@@ -111,8 +111,11 @@ function App() {
       if (saved) {
         const parsed: ServiceTypeMeta[] = JSON.parse(saved);
         if (parsed.length > 0) {
+          // Keep ALL saved types (including custom ones), add any missing defaults
           const savedMap = new Map(parsed.map(m => [m.type, m]));
-          return TIPOS_SERVICIOS_DEFAULT.map(t => savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true });
+          const defaultEntries = TIPOS_SERVICIOS_DEFAULT.map(t => savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true });
+          const customEntries = parsed.filter(m => !TIPOS_SERVICIOS_DEFAULT.includes(m.type));
+          return [...defaultEntries, ...customEntries];
         }
       }
     } catch { /* ignore */ }
@@ -150,7 +153,7 @@ function App() {
   const [editPrest, setEditPrest] = useState<Prestador | null>(null);
   const [prestForm, setPrestForm] = useState<Omit<Prestador, 'id'>>({
     nombre: '', nit: '', departamento: '', municipio: '', contrato: '', vigencia: '', regimen: 'SUBSIDIADO',
-    metas: TIPOS_SERVICIOS_DEFAULT.map(t => ({ type: t, monthlyGoal: 0, active: true }))
+    metas: []
   });
 
   // Mantenimiento – Custom CUPS
@@ -218,12 +221,13 @@ function App() {
         const config = await StorageService.getConfig();
         if (config) {
           if (config.metas && config.metas.length > 0) {
-            // Merge: keep saved goals, add any new default types missing from saved config
+            // Keep ALL saved types (including custom), add missing defaults
             const savedMap = new Map(config.metas.map((m: ServiceTypeMeta) => [m.type, m]));
-            const merged = TIPOS_SERVICIOS_DEFAULT.map(t =>
+            const defaultEntries = TIPOS_SERVICIOS_DEFAULT.map(t =>
               savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true }
             );
-            setMetas(merged);
+            const customEntries = config.metas.filter((m: ServiceTypeMeta) => !TIPOS_SERVICIOS_DEFAULT.includes(m.type));
+            setMetas([...defaultEntries, ...customEntries]);
           }
           if (config.scale) setScale(config.scale);
         }
@@ -2258,7 +2262,7 @@ function App() {
                             </button>
                             {isAdmin && (<>
                               <button
-                                onClick={() => { setEditPrest(p); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', metas: p.metas }); setShowPrestForm(true); }}
+                                onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', metas: mergedMetas }); setShowPrestForm(true); }}
                                 className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
                               >
                                 <Pencil className="h-4 w-4" />
