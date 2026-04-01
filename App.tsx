@@ -7,7 +7,7 @@ import {
   Upload, FileText, Database, Trash2, Save, Download,
   Activity, Users, TrendingUp, AlertTriangle, CheckCircle, Server,
   BarChart3, UserCheck, FileJson, Sun, Moon, ChevronLeft, ChevronRight, Calendar, Stethoscope, FileSpreadsheet, FileWarning, X, Scissors, Search,
-  Settings, Plus, Pencil, Check, Building2, ClipboardList, LogOut, ShieldCheck, User, Lock, Eye, EyeOff
+  Settings, Plus, Pencil, Check, Building2, ClipboardList, LogOut, ShieldCheck, User, Lock, Eye, EyeOff, HardDrive
 } from 'lucide-react';
 import {
   normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, CUPS_TIPO_MAP,
@@ -143,7 +143,7 @@ function App() {
 
   // Tab Navigation
   const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas'>('dashboard');
-  const [maintTab, setMaintTab] = useState<'prestadores' | 'cups' | 'servicios' | 'usuarios'>('prestadores');
+  const [maintTab, setMaintTab] = useState<'prestadores' | 'cups' | 'servicios' | 'usuarios' | 'monitor'>('prestadores');
 
   // Mantenimiento – Prestadores  (lazy init from localStorage — avoids save-before-load race)
   const [prestadores, setPrestadores] = useState<Prestador[]>(() => {
@@ -178,6 +178,14 @@ function App() {
   const [filterRegimen, setFilterRegimen] = useState('');
   const [prestSearch, setPrestSearch] = useState('');
   const [showPrestDropdown, setShowPrestDropdown] = useState(false);
+
+  // Monitor de recursos
+  const [monitorStats, setMonitorStats] = useState<{
+    heapUsed: number; heapTotal: number; heapLimit: number;
+    lsUsed: number; lsKeys: { key: string; size: number }[];
+    storageQuota: number; storageUsage: number;
+    uptime: number;
+  } | null>(null);
 
   // Firmas y funcionarios globales (persistidos en localStorage)
   const [funcionarios, setFuncionarios] = useState<string[]>(() => {
@@ -323,6 +331,36 @@ function App() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [metas, scale]);
+
+  // Monitor de recursos — actualiza cada segundo cuando la pestaña está activa
+  useEffect(() => {
+    const startTime = Date.now();
+    const collect = async () => {
+      const mem = (performance as any).memory;
+      const lsKeys = Object.keys(localStorage).map(k => {
+        const val = localStorage.getItem(k) || '';
+        return { key: k, size: new Blob([val]).size };
+      }).sort((a, b) => b.size - a.size);
+      const lsUsed = lsKeys.reduce((s, k) => s + k.size, 0);
+      let storageQuota = 0, storageUsage = 0;
+      try {
+        const est = await navigator.storage.estimate();
+        storageQuota = est.quota || 0;
+        storageUsage = est.usage || 0;
+      } catch {}
+      setMonitorStats({
+        heapUsed: mem?.usedJSHeapSize || 0,
+        heapTotal: mem?.totalJSHeapSize || 0,
+        heapLimit: mem?.jsHeapSizeLimit || 0,
+        lsUsed, lsKeys,
+        storageQuota, storageUsage,
+        uptime: Math.floor((Date.now() - startTime) / 1000),
+      });
+    };
+    collect();
+    const id = setInterval(collect, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Save prestadores
   useEffect(() => {
@@ -2241,7 +2279,8 @@ function App() {
                 { key: 'cups',        label: 'CUPS Personalizados', icon: <FileJson className="h-4 w-4" />,    adminOnly: true },
                 { key: 'servicios',   label: 'Tipos de Servicio',   icon: <Stethoscope className="h-4 w-4" />, adminOnly: true },
                 { key: 'usuarios',    label: 'Usuarios',            icon: <Users className="h-4 w-4" />,       adminOnly: true },
-              ] as { key: 'prestadores'|'cups'|'servicios'|'usuarios', label: string, icon: React.ReactNode, adminOnly: boolean }[])
+                { key: 'monitor',     label: 'Monitor',             icon: <Activity className="h-4 w-4" />,    adminOnly: true },
+              ] as { key: 'prestadores'|'cups'|'servicios'|'usuarios'|'monitor', label: string, icon: React.ReactNode, adminOnly: boolean }[])
               .filter(t => !t.adminOnly || isAdmin)
               .map(({ key, label, icon }) => (
                 <button
@@ -2892,6 +2931,119 @@ function App() {
                </p>
             </div>
           </div>
+            {/* --- MONITOR (Admin only) --- */}
+            {maintTab === 'monitor' && isAdmin && (() => {
+              const fmt = (b: number) => b >= 1048576 ? `${(b/1048576).toFixed(2)} MB` : b >= 1024 ? `${(b/1024).toFixed(1)} KB` : `${b} B`;
+              const pct = (used: number, total: number) => total > 0 ? Math.min(100, Math.round(used/total*100)) : 0;
+              const s = monitorStats;
+              const heapPct    = s ? pct(s.heapUsed, s.heapLimit) : 0;
+              const lsPct      = s ? pct(s.lsUsed, 5242880) : 0;   // localStorage ~5 MB limit
+              const stPct      = s ? pct(s.storageUsage, s.storageQuota) : 0;
+              const upFmt = (sec: number) => { const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),ss=sec%60; return `${h}h ${m}m ${ss}s`; };
+              const barColor = (p: number) => p < 60 ? 'bg-emerald-500' : p < 85 ? 'bg-amber-500' : 'bg-red-500';
+
+              return (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-3">
+                    <Activity className="h-5 w-5 text-indigo-500" />
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Monitor de Recursos</h2>
+                    <span className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> EN VIVO
+                    </span>
+                    {s && <span className="ml-auto text-xs text-slate-400">Activo: {upFmt(s.uptime)}</span>}
+                  </div>
+
+                  {!s ? (
+                    <p className="text-sm text-slate-400">Cargando métricas...</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+                      {/* Memoria JS Heap */}
+                      <div className="glass-panel rounded-2xl p-5 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          <Server className="h-4 w-4 text-indigo-500" /> Memoria JavaScript
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs text-slate-500">
+                            <span>Usada: <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(s.heapUsed)}</span></span>
+                            <span>{heapPct}%</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-500 ${barColor(heapPct)}`} style={{ width: `${heapPct}%` }} />
+                          </div>
+                          <div className="text-xs text-slate-400">Total asignada: {fmt(s.heapTotal)} / Límite: {fmt(s.heapLimit)}</div>
+                        </div>
+                      </div>
+
+                      {/* localStorage */}
+                      <div className="glass-panel rounded-2xl p-5 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          <Database className="h-4 w-4 text-blue-500" /> LocalStorage
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs text-slate-500">
+                            <span>Usado: <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(s.lsUsed)}</span></span>
+                            <span>{lsPct}%</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-500 ${barColor(lsPct)}`} style={{ width: `${lsPct}%` }} />
+                          </div>
+                          <div className="text-xs text-slate-400">Límite navegador: ~5 MB</div>
+                        </div>
+                        <div className="space-y-1 pt-1 border-t border-slate-200 dark:border-slate-700 max-h-40 overflow-y-auto custom-scroll">
+                          {s.lsKeys.map(k => (
+                            <div key={k.key} className="flex justify-between text-xs">
+                              <span className="text-slate-500 truncate max-w-[70%]">{k.key}</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300 shrink-0">{fmt(k.size)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Origin Storage (IndexedDB + Cache + SW) */}
+                      <div className="glass-panel rounded-2xl p-5 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          <HardDrive className="h-4 w-4 text-purple-500" /> Almacenamiento Origen
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs text-slate-500">
+                            <span>Usado: <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(s.storageUsage)}</span></span>
+                            <span>{stPct}%</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-500 ${barColor(stPct)}`} style={{ width: `${stPct}%` }} />
+                          </div>
+                          <div className="text-xs text-slate-400">Cuota total: {fmt(s.storageQuota)}</div>
+                        </div>
+                        <p className="text-xs text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-700">Incluye: localStorage, IndexedDB, Cache API</p>
+                      </div>
+
+                      {/* Registros */}
+                      <div className="glass-panel rounded-2xl p-5 space-y-3 md:col-span-2 xl:col-span-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          <ClipboardList className="h-4 w-4 text-emerald-500" /> Registros en App
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {[
+                            { label: 'Prestadores', val: prestadores.length, color: 'text-indigo-500' },
+                            { label: 'Actas',       val: actas.length,       color: 'text-blue-500' },
+                            { label: 'Usuarios',    val: users.length,       color: 'text-purple-500' },
+                            { label: 'CUPS custom', val: customCupsList.length, color: 'text-emerald-500' },
+                          ].map(item => (
+                            <div key={item.label} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                              <p className={`text-2xl font-bold ${item.color}`}>{item.val}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{item.label}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
         </div>
       )}
         {/* ===== ACTAS TAB ===== */}
