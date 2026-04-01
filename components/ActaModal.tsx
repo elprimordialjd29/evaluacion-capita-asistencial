@@ -50,9 +50,9 @@ export function ActaPreview({ acta }: { acta: Acta }) {
     fill: '#2dd4bf',
   }));
 
-  const th = 'border border-gray-500 bg-gray-200 px-2 py-1 text-center font-bold text-[11px] uppercase';
-  const td = 'border border-gray-400 px-2 py-0.5 text-[11px]';
-  const hdr = 'border border-gray-400 px-2 py-0.5 text-[11px]';
+  const th = 'border border-gray-500 bg-gray-200 px-2 py-0.5 text-center font-bold text-[12px] uppercase';
+  const td = 'border border-gray-400 px-2 py-0.5 text-[12px]';
+  const hdr = 'border border-gray-400 px-2 py-0.5 text-[12px]';
 
   return (
     <div
@@ -69,10 +69,10 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <LogoDusakawi size={62} />
           </div>
           <div className="flex flex-col items-center justify-center p-1.5 text-center gap-0.5">
-            <div className="text-[10px] text-gray-600 uppercase tracking-wide">PROCESO: GESTIÓN DEL RIESGO EN SALUD</div>
-            <div className="font-black text-[14px] uppercase leading-tight">ACTA DE EVALUACIÓN DE SERVICIOS</div>
+            <div className="text-[11px] text-gray-600 uppercase tracking-wide">PROCESO: GESTIÓN DEL RIESGO EN SALUD</div>
+            <div className="font-black text-[15px] uppercase leading-tight">ACTA DE EVALUACIÓN DE SERVICIOS</div>
           </div>
-          <div className="border-l border-gray-500 p-1.5 text-[10px] leading-snug text-gray-700">
+          <div className="border-l border-gray-500 p-1.5 text-[11px] leading-snug text-gray-700">
             <div><b>CÓDIGO:</b> DR-BC-AP-F-11</div>
             <div><b>VERSIÓN:</b> 02</div>
             <div><b>EMISIÓN:</b> 15/06/2022</div>
@@ -119,23 +119,23 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── PUNTOS A TRATAR ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[11px] font-bold uppercase border-b border-gray-400">PUNTOS A TRATAR:</div>
-          <div className="px-2 py-1 text-[11px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.puntosTratar}</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[12px] font-bold uppercase border-b border-gray-400">PUNTOS A TRATAR:</div>
+          <div className="px-2 py-1 text-[12px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.puntosTratar}</div>
         </div>
 
         {/* ── OBJETIVO ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[11px] font-bold uppercase border-b border-gray-400">OBJETIVO:</div>
-          <div className="px-2 py-1 text-[11px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.objetivo}</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[12px] font-bold uppercase border-b border-gray-400">OBJETIVO:</div>
+          <div className="px-2 py-1 text-[12px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.objetivo}</div>
         </div>
 
         {/* ── DESARROLLO Y CONCLUSIONES ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[11px] font-bold uppercase border-b border-gray-400">DESARROLLO Y CONCLUSIONES:</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[12px] font-bold uppercase border-b border-gray-400">DESARROLLO Y CONCLUSIONES:</div>
 
           {/* Párrafo ANTES del gráfico */}
           {acta.desarrolloYConclusiones && (
-            <div className="px-2 py-1 text-[11px]" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+            <div className="px-2 py-1 text-[12px]" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
               {acta.desarrolloYConclusiones}
             </div>
           )}
@@ -143,11 +143,11 @@ export function ActaPreview({ acta }: { acta: Acta }) {
           {/* Gráfica 1 – ancho fijo para que funcione bien en impresión */}
           {chartData.length > 0 && (
             <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
-              <div className="text-center text-[11px] font-semibold text-gray-700 py-1">Servicios Asistenciales</div>
+              <div className="text-center text-[12px] font-semibold text-gray-700 py-0.5">Servicios Asistenciales</div>
               <div style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
-                <BarChart width={710} height={220} data={chartData} margin={{ top: 12, right: 14, left: 4, bottom: 60 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
+                <BarChart width={710} height={185} data={chartData} margin={{ top: 10, right: 12, left: 4, bottom: 55 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="tipo" tick={{ fontSize: 8, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={60} />
+                  <XAxis dataKey="tipo" tick={{ fontSize: 8, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={55} />
                   <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9 }} width={32} />
                   <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                   <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 11 }} />
@@ -162,7 +162,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
           {/* Párrafo DESPUÉS del gráfico */}
           {acta.desarrolloConclusionesPost && (
-            <div className="px-2 py-1 text-[11px] border-t border-gray-300" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+            <div className="px-2 py-1 text-[12px] border-t border-gray-300" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
               {acta.desarrolloConclusionesPost}
             </div>
           )}
@@ -170,11 +170,11 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── TABLA 2 – CÁLCULO TOTAL ASISTENCIAL ── */}
         <div>
-          <div className="bg-gray-200 text-center font-bold text-[11px] py-0.5 border-b border-gray-400 uppercase">
+          <div className="bg-gray-200 text-center font-bold text-[12px] py-0.5 border-b border-gray-400 uppercase">
             TABLA 2 – CÁLCULO TOTAL ASISTENCIAL (PROGRAMADO VS EJECUTADO)
           </div>
           {/* Summary 2-column block */}
-          <table className="w-full border-collapse text-[11px] border-b border-gray-400">
+          <table className="w-full border-collapse text-[12px] border-b border-gray-400">
             <tbody>
               <tr>
                 <td className={td + ' border-l-0 font-bold w-3/4'}>TOTAL PROGRAMADO</td>
@@ -191,7 +191,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             </tbody>
           </table>
           {/* Detail 4-column table */}
-          <table className="w-full border-collapse text-[11px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr>
                 <th className={th + ' border-l-0 text-left'}>PROGRAMA / TIPO DE SERVICIO</th>
@@ -236,10 +236,10 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <LogoDusakawi size={62} />
           </div>
           <div className="flex flex-col items-center justify-center p-1.5 text-center gap-0.5">
-            <div className="text-[10px] text-gray-600 uppercase tracking-wide">PROCESO: GESTIÓN DEL RIESGO EN SALUD</div>
-            <div className="font-black text-[14px] uppercase leading-tight">ACTA DE EVALUACIÓN DE SERVICIOS</div>
+            <div className="text-[11px] text-gray-600 uppercase tracking-wide">PROCESO: GESTIÓN DEL RIESGO EN SALUD</div>
+            <div className="font-black text-[15px] uppercase leading-tight">ACTA DE EVALUACIÓN DE SERVICIOS</div>
           </div>
-          <div className="border-l border-gray-500 p-1.5 text-[10px] leading-snug text-gray-700">
+          <div className="border-l border-gray-500 p-1.5 text-[11px] leading-snug text-gray-700">
             <div><b>CÓDIGO:</b> DR-BC-AP-F-11</div>
             <div><b>VERSIÓN:</b> 02</div>
             <div><b>EMISIÓN:</b> 15/06/2022</div>
@@ -250,10 +250,10 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── OBSERVACIONES ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[11px] font-bold uppercase border-b border-gray-400">
+          <div className="bg-gray-200 px-2 py-0.5 text-[12px] font-bold uppercase border-b border-gray-400">
             OBSERVACIONES:
           </div>
-          <div className="px-2 py-1 text-[10px] leading-snug" style={{ textAlign: 'justify' }}>
+          <div className="px-2 py-1 text-[11px] leading-snug" style={{ textAlign: 'justify' }}>
             <p style={{ marginBottom: 5 }}>{OBS_BULLET}</p>
             {acta.observaciones && (
               <p style={{ marginBottom: 5, whiteSpace: 'pre-wrap' }}>{acta.observaciones}</p>
