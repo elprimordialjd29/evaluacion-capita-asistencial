@@ -145,9 +145,9 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
               <div className="text-center text-[12px] font-semibold text-gray-700 py-0.5">Servicios Asistenciales</div>
               <div style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
-                <BarChart width={710} height={130} data={chartData} margin={{ top: 6, right: 12, left: 4, bottom: 48 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
+                <BarChart width={710} height={110} data={chartData} margin={{ top: 6, right: 12, left: 4, bottom: 44 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="tipo" tick={{ fontSize: 8, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={48} />
+                  <XAxis dataKey="tipo" tick={{ fontSize: 8, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={44} />
                   <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9 }} width={32} />
                   <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                   <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 11 }} />
@@ -190,17 +190,15 @@ export function ActaPreview({ acta }: { acta: Acta }) {
               </tr>
             </tbody>
           </table>
-          {/* Detail 4-column table */}
+          {/* Detail 4-column table – sin thead para que no se repita al cortar */}
           <table className="w-full border-collapse text-[12px]">
-            <thead>
+            <tbody>
               <tr>
                 <th className={th + ' border-l-0 text-left'}>PROGRAMA / TIPO DE SERVICIO</th>
                 <th className={th + ' w-28'}>CANTIDAD PROGRAMADA</th>
                 <th className={th + ' w-28'}>CANTIDAD EJECUTADA</th>
                 <th className={th + ' border-r-0 w-24'}>% CUMPLIMIENTO</th>
               </tr>
-            </thead>
-            <tbody>
               {acta.servicios.map((srv, i) => {
                 const p = pct(srv);
                 return (
@@ -222,7 +220,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
           </table>
         </div>
 
-      </div>{/* end page 1 border */}
+      </div>{/* end page 1 */}
 
       {/* ══════════════ PAGE BREAK ══════════════ */}
       <div className="print-page-break" />
