@@ -50,9 +50,9 @@ export function ActaPreview({ acta }: { acta: Acta }) {
     fill: '#2dd4bf',
   }));
 
-  const th = 'border border-gray-500 bg-gray-200 px-1.5 py-0 text-center font-bold text-[7px] uppercase';
-  const td = 'border border-gray-400 px-1.5 py-0 text-[7px]';
-  const hdr = 'border border-gray-400 px-1.5 py-0 text-[8px]';
+  const th = 'border border-gray-500 bg-gray-200 px-2 py-0.5 text-center font-bold text-[8.5px] uppercase';
+  const td = 'border border-gray-400 px-2 py-0.5 text-[8.5px]';
+  const hdr = 'border border-gray-400 px-1.5 py-0.5 text-[9px]';
 
   return (
     <div
@@ -119,23 +119,23 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── PUNTOS A TRATAR ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[7.5px] font-bold uppercase border-b border-gray-400">PUNTOS A TRATAR:</div>
-          <div className="px-2 py-0.5 text-[7.5px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.puntosTratar}</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">PUNTOS A TRATAR:</div>
+          <div className="px-2 py-1 text-[9px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.puntosTratar}</div>
         </div>
 
         {/* ── OBJETIVO ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[7.5px] font-bold uppercase border-b border-gray-400">OBJETIVO:</div>
-          <div className="px-2 py-0.5 text-[7.5px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.objetivo}</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">OBJETIVO:</div>
+          <div className="px-2 py-1 text-[9px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.objetivo}</div>
         </div>
 
         {/* ── DESARROLLO Y CONCLUSIONES ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[7.5px] font-bold uppercase border-b border-gray-400">DESARROLLO Y CONCLUSIONES:</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">DESARROLLO Y CONCLUSIONES:</div>
 
           {/* Párrafo ANTES del gráfico */}
           {acta.desarrolloYConclusiones && (
-            <div className="px-2 py-0.5 text-[7.5px]" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+            <div className="px-2 py-1 text-[9px]" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
               {acta.desarrolloYConclusiones}
             </div>
           )}
@@ -143,16 +143,16 @@ export function ActaPreview({ acta }: { acta: Acta }) {
           {/* Gráfica 1 – ancho fijo para que funcione bien en impresión */}
           {chartData.length > 0 && (
             <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
-              <div className="text-center text-[7px] font-semibold text-gray-700">Servicios Asistenciales</div>
+              <div className="text-center text-[8px] font-semibold text-gray-700 py-0.5">Servicios Asistenciales</div>
               <div style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
-                <BarChart width={710} height={150} data={chartData} margin={{ top: 6, right: 10, left: 4, bottom: 42 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
+                <BarChart width={710} height={200} data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 55 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="tipo" tick={{ fontSize: 5, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={42} />
-                  <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 6 }} width={28} />
+                  <XAxis dataKey="tipo" tick={{ fontSize: 6, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={55} />
+                  <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 7 }} width={30} />
                   <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                   <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="pct" radius={[2, 2, 0, 0]} minPointSize={2} isAnimationActive={false} maxBarSize={55}>
-                    <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 6, fontWeight: 'bold', fill: '#000000' }} />
+                  <Bar dataKey="pct" radius={[2, 2, 0, 0]} minPointSize={2} isAnimationActive={false} maxBarSize={60}>
+                    <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 7, fontWeight: 'bold', fill: '#000000' }} />
                     {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Bar>
                 </BarChart>
@@ -162,7 +162,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
           {/* Párrafo DESPUÉS del gráfico */}
           {acta.desarrolloConclusionesPost && (
-            <div className="px-2 py-0.5 text-[7.5px] border-t border-gray-300" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+            <div className="px-2 py-1 text-[9px] border-t border-gray-300" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
               {acta.desarrolloConclusionesPost}
             </div>
           )}
@@ -170,11 +170,11 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── TABLA 2 – CÁLCULO TOTAL ASISTENCIAL ── */}
         <div>
-          <div className="bg-gray-200 text-center font-bold text-[7.5px] py-0.5 border-b border-gray-400 uppercase">
+          <div className="bg-gray-200 text-center font-bold text-[8.5px] py-0.5 border-b border-gray-400 uppercase">
             TABLA 2 – CÁLCULO TOTAL ASISTENCIAL (PROGRAMADO VS EJECUTADO)
           </div>
           {/* Summary 2-column block */}
-          <table className="w-full border-collapse text-[7.5px] border-b border-gray-400">
+          <table className="w-full border-collapse text-[8.5px] border-b border-gray-400">
             <tbody>
               <tr>
                 <td className={td + ' border-l-0 font-bold w-3/4'}>TOTAL PROGRAMADO</td>
@@ -191,7 +191,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             </tbody>
           </table>
           {/* Detail 4-column table */}
-          <table className="w-full border-collapse text-[7.5px]">
+          <table className="w-full border-collapse text-[8.5px]">
             <thead>
               <tr>
                 <th className={th + ' border-l-0 text-left'}>PROGRAMA / TIPO DE SERVICIO</th>
@@ -250,16 +250,16 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── OBSERVACIONES ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[7.5px] font-bold uppercase border-b border-gray-400">
+          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">
             OBSERVACIONES:
           </div>
-          <div className="px-2 py-0.5 text-[7px] leading-tight" style={{ textAlign: 'justify' }}>
-            <p style={{ marginBottom: 3 }}>{OBS_BULLET}</p>
+          <div className="px-2 py-1 text-[8px] leading-snug" style={{ textAlign: 'justify' }}>
+            <p style={{ marginBottom: 4 }}>{OBS_BULLET}</p>
             {acta.observaciones && (
-              <p style={{ marginBottom: 3, whiteSpace: 'pre-wrap' }}>{acta.observaciones}</p>
+              <p style={{ marginBottom: 4, whiteSpace: 'pre-wrap' }}>{acta.observaciones}</p>
             )}
-            <p style={{ marginBottom: 3 }}>{BOILERPLATE_P2.split('\n\n')[0]}</p>
-            <p style={{ marginBottom: 3 }}>{BOILERPLATE_P2.split('\n\n')[1]}</p>
+            <p style={{ marginBottom: 4 }}>{BOILERPLATE_P2.split('\n\n')[0]}</p>
+            <p style={{ marginBottom: 4 }}>{BOILERPLATE_P2.split('\n\n')[1]}</p>
             <p>{BOILERPLATE_P2.split('\n\n')[2]}</p>
           </div>
         </div>
@@ -267,26 +267,26 @@ export function ActaPreview({ acta }: { acta: Acta }) {
         {/* ── FIRMAS 2×2 ── */}
         <div className="grid grid-cols-2">
           {/* Row 1 */}
-          <div className="border-r border-gray-400 px-6 py-4 text-center">
-            <div style={{ height: 28 }} />
-            <div className="border-t border-gray-700 pt-1 text-[8.5px] font-bold">{acta.repLegalIPS || '________________________________'}</div>
-            <div className="text-[7.5px] text-gray-600 mt-0.5 uppercase">Representante Legal IPS</div>
+          <div className="border-r border-gray-400 px-6 py-5 text-center">
+            <div style={{ height: 36 }} />
+            <div className="border-t border-gray-700 pt-1 text-[9px] font-bold">{acta.repLegalIPS || '________________________________'}</div>
+            <div className="text-[8px] text-gray-600 mt-0.5 uppercase">Representante Legal IPS</div>
           </div>
-          <div className="px-6 py-4 text-center">
-            <div style={{ height: 28 }} />
-            <div className="border-t border-gray-700 pt-1 text-[8.5px] font-bold">{acta.repLegalEPS || '________________________________'}</div>
-            <div className="text-[7.5px] text-gray-600 mt-0.5 uppercase">Representante Legal EPSI</div>
+          <div className="px-6 py-5 text-center">
+            <div style={{ height: 36 }} />
+            <div className="border-t border-gray-700 pt-1 text-[9px] font-bold">{acta.repLegalEPS || '________________________________'}</div>
+            <div className="text-[8px] text-gray-600 mt-0.5 uppercase">Representante Legal EPSI</div>
           </div>
           {/* Row 2 */}
-          <div className="border-t border-r border-gray-400 px-6 py-4 text-center">
-            <div style={{ height: 28 }} />
-            <div className="border-t border-gray-700 pt-1 text-[8.5px] font-bold">{acta.coordinador || '________________________________'}</div>
-            <div className="text-[7.5px] text-gray-600 mt-0.5 uppercase">Coordinador(a) de Baja Complejidad</div>
+          <div className="border-t border-r border-gray-400 px-6 py-5 text-center">
+            <div style={{ height: 36 }} />
+            <div className="border-t border-gray-700 pt-1 text-[9px] font-bold">{acta.coordinador || '________________________________'}</div>
+            <div className="text-[8px] text-gray-600 mt-0.5 uppercase">Coordinador(a) de Baja Complejidad</div>
           </div>
-          <div className="border-t border-gray-400 px-6 py-4 text-center">
-            <div style={{ height: 28 }} />
-            <div className="border-t border-gray-700 pt-1 text-[8.5px] font-bold">{acta.funcionario || '________________________________'}</div>
-            <div className="text-[7.5px] text-gray-600 mt-0.5 uppercase">Funcionario quien realiza la Evaluación</div>
+          <div className="border-t border-gray-400 px-6 py-5 text-center">
+            <div style={{ height: 36 }} />
+            <div className="border-t border-gray-700 pt-1 text-[9px] font-bold">{acta.funcionario || '________________________________'}</div>
+            <div className="text-[8px] text-gray-600 mt-0.5 uppercase">Funcionario quien realiza la Evaluación</div>
           </div>
         </div>
 
