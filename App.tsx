@@ -176,6 +176,8 @@ function App() {
   const [searchPrestador, setSearchPrestador] = useState('');
   const [filterContrato, setFilterContrato] = useState('');
   const [filterRegimen, setFilterRegimen] = useState('');
+  const [prestSearch, setPrestSearch] = useState('');
+  const [showPrestDropdown, setShowPrestDropdown] = useState(false);
 
   // Firmas y funcionarios globales (persistidos en localStorage)
   const [funcionarios, setFuncionarios] = useState<string[]>(() => {
@@ -1572,59 +1574,61 @@ function App() {
                 processFiles(rFiles, cFile, jFiles);
               }}
             >
-              {/* Prestador selector */}
-              {prestadores.length > 0 && (
-                <div className="space-y-2">
-                  {/* Filtros */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">N° Contrato</label>
-                      <input
-                        type="text"
-                        placeholder="Buscar contrato..."
-                        value={filterContrato}
-                        onChange={e => setFilterContrato(e.target.value)}
-                        className="mt-1 w-full px-3 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Régimen</label>
-                      <select
-                        value={filterRegimen}
-                        onChange={e => setFilterRegimen(e.target.value)}
-                        className="mt-1 w-full px-3 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="">— Todos —</option>
-                        {[...new Set(prestadores.map(p => (p.regimen || 'SUBSIDIADO').toUpperCase()))].sort().map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  {/* Select prestador filtrado */}
-                  <div>
+              {/* Prestador autocomplete */}
+              {prestadores.length > 0 && (() => {
+                const selectedPrest = detectedPrestadorId ? prestadores.find(x => x.id === detectedPrestadorId) : null;
+                const q = prestSearch.toLowerCase();
+                const filtered = prestadores.filter(p =>
+                  !q || p.contrato.toLowerCase().includes(q) ||
+                  p.nombre.toLowerCase().includes(q) ||
+                  (p.regimen || 'SUBSIDIADO').toLowerCase().includes(q)
+                );
+                return (
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prestador</label>
-                    <select
-                      className="mt-1 w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={detectedPrestadorId || ''}
-                      onChange={e => {
-                        const p = prestadores.find(x => x.id === e.target.value);
-                        if (p) handleLoadPrestadorMetas(p);
-                        else setDetectedPrestadorId(null);
-                      }}
-                    >
-                      <option value="">— Seleccionar prestador —</option>
-                      {prestadores.filter(p => {
-                        const matchContrato = !filterContrato.trim() || p.contrato.toLowerCase().includes(filterContrato.toLowerCase());
-                        const matchRegimen = !filterRegimen || (p.regimen || 'SUBSIDIADO').toUpperCase() === filterRegimen;
-                        return matchContrato && matchRegimen;
-                      }).map(p => (
-                        <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} — {p.regimen || 'SUBSIDIADO'}</option>
-                      ))}
-                    </select>
+                    {selectedPrest ? (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 dark:border-indigo-600">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{selectedPrest.nombre}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{selectedPrest.contrato} — {selectedPrest.regimen || 'SUBSIDIADO'}</p>
+                        </div>
+                        <button type="button" onClick={() => { setDetectedPrestadorId(null); setPrestSearch(''); }}
+                          className="shrink-0 text-slate-400 hover:text-red-500 transition-colors text-lg leading-none font-bold">×</button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Buscar por contrato, nombre o régimen..."
+                          value={prestSearch}
+                          onChange={e => { setPrestSearch(e.target.value); setShowPrestDropdown(true); }}
+                          onFocus={() => setShowPrestDropdown(true)}
+                          onBlur={() => setTimeout(() => setShowPrestDropdown(false), 150)}
+                          className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        {showPrestDropdown && filtered.length > 0 && (
+                          <ul className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-56 overflow-y-auto custom-scroll">
+                            {filtered.map(p => (
+                              <li key={p.id}
+                                onMouseDown={() => { handleLoadPrestadorMetas(p); setPrestSearch(''); setShowPrestDropdown(false); }}
+                                className="px-3 py-2 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0">
+                                <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{p.nombre}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{p.contrato} — {p.regimen || 'SUBSIDIADO'}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {showPrestDropdown && prestSearch && filtered.length === 0 && (
+                          <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl px-3 py-3 text-sm text-slate-400 text-center">
+                            Sin resultados
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* TXT Drop Zone */}
                 <div className="space-y-2">
