@@ -93,6 +93,9 @@
         /* Page 2 forces a new page */
         .print-page-break { break-before: page !important; page-break-before: always !important; }
 
+        /* Add top padding so page 2 border isn't clipped at the top */
+        .print-page-break + div { margin-top: 8mm !important; }
+
         @page { margin: 0; size: letter portrait; }
       }
     </style>
