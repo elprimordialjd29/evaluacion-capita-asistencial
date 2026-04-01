@@ -168,7 +168,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
               <div className="text-center text-[9px] font-semibold text-gray-700 py-0.5">Servicios Asistenciales</div>
               <div style={{ width: '100%', overflowY: 'visible' }}>
-                <BarChart width={710} height={210} data={chartData}
+                <BarChart width={710} height={255} data={chartData}
                   margin={{ top: 14, right: 12, left: 4, bottom: 65 }} barCategoryGap="20%" style={{ maxWidth: '100%' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="tipo" interval={0} height={65} tick={XBarTick} />
