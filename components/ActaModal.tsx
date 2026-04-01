@@ -50,9 +50,9 @@ export function ActaPreview({ acta }: { acta: Acta }) {
     fill: '#2dd4bf',
   }));
 
-  const th = 'border border-gray-500 bg-gray-200 px-2 py-1 text-center font-bold text-[9px] uppercase';
-  const td = 'border border-gray-400 px-2 py-1 text-[9px]';
-  const hdr = 'border border-gray-400 px-1.5 py-1 text-[9px]';
+  const th = 'border border-gray-500 bg-gray-200 px-2 py-0.5 text-center font-bold text-[8px] uppercase';
+  const td = 'border border-gray-400 px-2 py-0.5 text-[8px]';
+  const hdr = 'border border-gray-400 px-1.5 py-0.5 text-[8.5px]';
 
   return (
     <div
@@ -119,23 +119,23 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
         {/* ── PUNTOS A TRATAR ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">PUNTOS A TRATAR:</div>
-          <div className="px-2 py-1.5 text-[9px]" style={{ minHeight: 36, whiteSpace: 'pre-wrap' }}>{acta.puntosTratar}</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[8px] font-bold uppercase border-b border-gray-400">PUNTOS A TRATAR:</div>
+          <div className="px-2 py-1 text-[8px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.puntosTratar}</div>
         </div>
 
         {/* ── OBJETIVO ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">OBJETIVO:</div>
-          <div className="px-2 py-1.5 text-[9px]" style={{ minHeight: 28, whiteSpace: 'pre-wrap' }}>{acta.objetivo}</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[8px] font-bold uppercase border-b border-gray-400">OBJETIVO:</div>
+          <div className="px-2 py-1 text-[8px]" style={{ whiteSpace: 'pre-wrap' }}>{acta.objetivo}</div>
         </div>
 
         {/* ── DESARROLLO Y CONCLUSIONES ── */}
         <div className="border-b border-gray-400">
-          <div className="bg-gray-200 px-2 py-0.5 text-[9px] font-bold uppercase border-b border-gray-400">DESARROLLO Y CONCLUSIONES:</div>
+          <div className="bg-gray-200 px-2 py-0.5 text-[8px] font-bold uppercase border-b border-gray-400">DESARROLLO Y CONCLUSIONES:</div>
 
           {/* Párrafo ANTES del gráfico */}
           {acta.desarrolloYConclusiones && (
-            <div className="px-2 py-1.5 text-[9px]" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+            <div className="px-2 py-1 text-[8px]" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
               {acta.desarrolloYConclusiones}
             </div>
           )}
@@ -144,11 +144,11 @@ export function ActaPreview({ acta }: { acta: Acta }) {
           {chartData.length > 0 && (
             <div className="border-t border-gray-300">
               <div className="text-center pt-1 text-[9px] font-semibold text-gray-700">Servicios Asistenciales</div>
-              <div style={{ width: '100%', height: Math.min(Math.max(200, chartData.length * 22 + 90), 300) }}>
+              <div style={{ width: '100%', height: Math.min(Math.max(160, chartData.length * 16 + 80), 240) }}>
                 <ResponsiveContainer width="100%" height="100%" minWidth={200}>
-                  <BarChart data={chartData} margin={{ top: 14, right: 20, left: 10, bottom: 80 }} barCategoryGap="20%" barGap={4}>
+                  <BarChart data={chartData} margin={{ top: 12, right: 16, left: 8, bottom: 65 }} barCategoryGap="20%" barGap={2}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="tipo" tick={{ fontSize: 6, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={75} />
+                    <XAxis dataKey="tipo" tick={{ fontSize: 5.5, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={60} />
                     <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 8 }} />
                     <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                     <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
@@ -164,7 +164,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
 
           {/* Párrafo DESPUÉS del gráfico */}
           {acta.desarrolloConclusionesPost && (
-            <div className="px-2 py-1.5 text-[9px] border-t border-gray-300" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+            <div className="px-2 py-1 text-[8px] border-t border-gray-300" style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
               {acta.desarrolloConclusionesPost}
             </div>
           )}

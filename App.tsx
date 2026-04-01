@@ -672,15 +672,23 @@ function App() {
 
   const handleSaveInlineActa = () => {
     if (!inlineActa) return;
+    // Auto-generate numero if empty, using contract + sequence
+    let actaToSave = inlineActa;
+    if (!actaToSave.numero.trim()) {
+      const contrato = actaToSave.contrato || (detectedPrestadorId ? prestadores.find(p => p.id === detectedPrestadorId)?.contrato : '') || 'ACTA';
+      const existing = actas.filter(a => a.id !== actaToSave.id && a.contrato === actaToSave.contrato);
+      actaToSave = { ...actaToSave, numero: `${contrato}-${existing.length + 1}` };
+      setInlineActa(actaToSave);
+    }
     setActas(prev => {
-      const idx = prev.findIndex(a => a.id === inlineActa.id);
+      const idx = prev.findIndex(a => a.id === actaToSave.id);
       const next = idx >= 0
-        ? prev.map((a, i) => i === idx ? inlineActa : a)
-        : [...prev, inlineActa];
+        ? prev.map((a, i) => i === idx ? actaToSave : a)
+        : [...prev, actaToSave];
       localStorage.setItem('actas', JSON.stringify(next));
       return next;
     });
-    setMessage({ type: 'success', text: `Acta ${inlineActa.numero} guardada.` });
+    setMessage({ type: 'success', text: `Acta ${actaToSave.numero} guardada.` });
   };
 
   // --- Auth Handlers ---
