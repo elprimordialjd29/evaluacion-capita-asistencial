@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Printer, FileSpreadsheet, TrendingUp } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, LabelList, ReferenceLine
+  Cell, LabelList, ReferenceLine
 } from 'recharts';
 import { Acta, ActaServicio } from '../types';
 import { utils, writeFile } from 'xlsx';
@@ -140,24 +140,22 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             </div>
           )}
 
-          {/* Gráfica 1 */}
+          {/* Gráfica 1 – ancho fijo para que funcione bien en impresión */}
           {chartData.length > 0 && (
-            <div className="border-t border-gray-300">
+            <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
               <div className="text-center text-[7px] font-semibold text-gray-700">Servicios Asistenciales</div>
-              <div style={{ width: '100%', height: 155, overflow: 'visible' }}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={200}>
-                  <BarChart data={chartData} margin={{ top: 6, right: 10, left: 4, bottom: 40 }} barCategoryGap="20%" barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="tipo" tick={{ fontSize: 5, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={40} />
-                    <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 6 }} width={28} />
-                    <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
-                    <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
-                    <Bar dataKey="pct" radius={[2, 2, 0, 0]} minPointSize={2} isAnimationActive={false} maxBarSize={55}>
-                      <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 6, fontWeight: 'bold', fill: '#000000' }} />
-                      {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              <div style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
+                <BarChart width={710} height={150} data={chartData} margin={{ top: 6, right: 10, left: 4, bottom: 42 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="tipo" tick={{ fontSize: 5, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={42} />
+                  <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 6 }} width={28} />
+                  <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
+                  <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
+                  <Bar dataKey="pct" radius={[2, 2, 0, 0]} minPointSize={2} isAnimationActive={false} maxBarSize={55}>
+                    <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 6, fontWeight: 'bold', fill: '#000000' }} />
+                    {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Bar>
+                </BarChart>
               </div>
             </div>
           )}
