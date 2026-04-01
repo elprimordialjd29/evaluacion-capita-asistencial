@@ -50,8 +50,8 @@ export function ActaPreview({ acta }: { acta: Acta }) {
     fill: '#2dd4bf',
   }));
 
-  const th = 'border border-gray-500 bg-gray-200 px-2 py-0.5 text-center font-bold text-[12px] uppercase';
-  const td = 'border border-gray-400 px-2 py-0.5 text-[12px]';
+  const th = 'border border-gray-500 bg-gray-200 px-2 py-0 text-center font-bold text-[12px] uppercase';
+  const td = 'border border-gray-400 px-2 py-0 text-[12px]';
   const hdr = 'border border-gray-400 px-2 py-0.5 text-[12px]';
 
   return (
@@ -145,9 +145,9 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
               <div className="text-center text-[12px] font-semibold text-gray-700 py-0.5">Servicios Asistenciales</div>
               <div style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
-                <BarChart width={710} height={185} data={chartData} margin={{ top: 10, right: 12, left: 4, bottom: 55 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
+                <BarChart width={710} height={165} data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 52 }} barCategoryGap="22%" barGap={2} style={{ maxWidth: '100%' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="tipo" tick={{ fontSize: 8, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={55} />
+                  <XAxis dataKey="tipo" tick={{ fontSize: 8, fill: '#374151' }} angle={-45} textAnchor="end" interval={0} height={52} />
                   <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 9 }} width={32} />
                   <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                   <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 11 }} />
