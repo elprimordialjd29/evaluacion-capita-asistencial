@@ -171,7 +171,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
                 <BarChart width={710} height={210} data={chartData}
                   margin={{ top: 14, right: 12, left: 4, bottom: 65 }} barCategoryGap="20%" style={{ maxWidth: '100%' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="tipo" interval={0} height={65} tick={<XBarTick x={0} y={0} payload={null} />} />
+                  <XAxis dataKey="tipo" interval={0} height={65} tick={XBarTick} />
                   <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} interval={0}
                     tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 8 }} width={30} />
                   <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
