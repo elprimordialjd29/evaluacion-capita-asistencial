@@ -97,6 +97,7 @@ export interface Prestador {
   contrato: string;
   vigencia: string;
   regimen: string;
+  repLegalIPS: string;
   metas: ServiceTypeMeta[];
 }
 

@@ -152,7 +152,7 @@ function App() {
   const [showPrestForm, setShowPrestForm] = useState(false);
   const [editPrest, setEditPrest] = useState<Prestador | null>(null);
   const [prestForm, setPrestForm] = useState<Omit<Prestador, 'id'>>({
-    nombre: '', nit: '', departamento: '', municipio: '', contrato: '', vigencia: '', regimen: 'SUBSIDIADO',
+    nombre: '', nit: '', departamento: '', municipio: '', contrato: '', vigencia: '', regimen: 'SUBSIDIADO', repLegalIPS: '',
     metas: []
   });
 
@@ -601,7 +601,7 @@ function App() {
       desarrolloConclusionesPost: 'Se verifica la ejecución de las actividades de atención primaria, correspondientes a la vigencia antes mencionada, se aclara que se debe cumplir con mínimo el 100% de las actividades programadas para los servicios Asistenciales, a continuación, se relaciona en la tabla 2. el resultado obtenido:',
       servicios,
       observaciones: '',
-      repLegalIPS: '',
+      repLegalIPS: p.repLegalIPS || '',
       repLegalEPS: firmasGlobales.repLegalEPSI,
       createdAt: today
     };
@@ -2270,7 +2270,7 @@ function App() {
                             </button>
                             {isAdmin && (<>
                               <button
-                                onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', metas: mergedMetas }); setShowPrestForm(true); }}
+                                onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', repLegalIPS: p.repLegalIPS || '', metas: mergedMetas }); setShowPrestForm(true); }}
                                 className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -3018,6 +3018,7 @@ function App() {
                   { key: 'municipio',    label: 'Municipio',                   placeholder: 'Valledupar',                 full: false },
                   { key: 'contrato',     label: 'N° de Contrato',              placeholder: '20570-093-AS',               full: false },
                   { key: 'vigencia',     label: 'Vigencia del Contrato',       placeholder: '01/01/2025 - 31/12/2025',    full: false },
+                  { key: 'repLegalIPS',  label: 'Representante Legal IPS',     placeholder: 'Nombre completo',            full: true },
                 ] as {key: keyof Omit<Prestador,'id'|'metas'>, label: string, placeholder: string, full: boolean}[]).map(({ key, label, placeholder, full }) => (
                   <div key={key} className={full ? 'sm:col-span-2' : ''}>
                     <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">{label}</label>
