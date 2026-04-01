@@ -174,6 +174,8 @@ function App() {
   const [inlineActa, setInlineActa] = useState<Acta | null>(null); // inline editor in Actas tab
   const [selectedDashPrestador, setSelectedDashPrestador] = useState<string | null>(null);
   const [searchPrestador, setSearchPrestador] = useState('');
+  const [filterContrato, setFilterContrato] = useState('');
+  const [filterRegimen, setFilterRegimen] = useState('');
 
   // Firmas y funcionarios globales (persistidos en localStorage)
   const [funcionarios, setFuncionarios] = useState<string[]>(() => {
@@ -1572,22 +1574,55 @@ function App() {
             >
               {/* Prestador selector */}
               {prestadores.length > 0 && (
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prestador</label>
-                  <select
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={detectedPrestadorId || ''}
-                    onChange={e => {
-                      const p = prestadores.find(x => x.id === e.target.value);
-                      if (p) handleLoadPrestadorMetas(p);
-                      else setDetectedPrestadorId(null);
-                    }}
-                  >
-                    <option value="">— Seleccionar prestador —</option>
-                    {prestadores.map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} — {p.regimen || 'SUBSIDIADO'}</option>
-                    ))}
-                  </select>
+                <div className="space-y-2">
+                  {/* Filtros */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">N° Contrato</label>
+                      <input
+                        type="text"
+                        placeholder="Buscar contrato..."
+                        value={filterContrato}
+                        onChange={e => setFilterContrato(e.target.value)}
+                        className="mt-1 w-full px-3 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Régimen</label>
+                      <select
+                        value={filterRegimen}
+                        onChange={e => setFilterRegimen(e.target.value)}
+                        className="mt-1 w-full px-3 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">— Todos —</option>
+                        {[...new Set(prestadores.map(p => (p.regimen || 'SUBSIDIADO').toUpperCase()))].sort().map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Select prestador filtrado */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prestador</label>
+                    <select
+                      className="mt-1 w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={detectedPrestadorId || ''}
+                      onChange={e => {
+                        const p = prestadores.find(x => x.id === e.target.value);
+                        if (p) handleLoadPrestadorMetas(p);
+                        else setDetectedPrestadorId(null);
+                      }}
+                    >
+                      <option value="">— Seleccionar prestador —</option>
+                      {prestadores.filter(p => {
+                        const matchContrato = !filterContrato.trim() || p.contrato.toLowerCase().includes(filterContrato.toLowerCase());
+                        const matchRegimen = !filterRegimen || (p.regimen || 'SUBSIDIADO').toUpperCase() === filterRegimen;
+                        return matchContrato && matchRegimen;
+                      }).map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} — {p.regimen || 'SUBSIDIADO'}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
