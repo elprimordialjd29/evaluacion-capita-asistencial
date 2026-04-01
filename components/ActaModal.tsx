@@ -37,12 +37,12 @@ function LogoDusakawi({ size = 60 }: { size?: number }) {
   );
 }
 
-// ─── Custom Y-axis tick with word-wrap for horizontal bar chart ──────────────
-function HBarTick({ x, y, payload }: any) {
-  const maxChars = 18;
-  const lh = 10;
-  const fs = 8;
-  const words: string[] = (payload.value as string).split(' ');
+// ─── Custom X-axis tick con word-wrap para gráfico de barras verticales ──────
+function XBarTick({ x, y, payload }: any) {
+  const maxChars = 11;
+  const lh = 9;
+  const fs = 7;
+  const words: string[] = (payload?.value as string ?? '').split(' ');
   const lines: string[] = [];
   let line = '';
   for (const w of words) {
@@ -54,8 +54,7 @@ function HBarTick({ x, y, payload }: any) {
   return (
     <g transform={`translate(${x},${y})`}>
       {lines.map((l, i) => (
-        <text key={i} x={-4} y={(i - (lines.length - 1) / 2) * lh}
-          textAnchor="end" fill="#374151" fontSize={fs}>{l}</text>
+        <text key={i} x={0} y={i * lh + 8} textAnchor="middle" fill="#374151" fontSize={fs}>{l}</text>
       ))}
     </g>
   );
@@ -164,21 +163,21 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             </div>
           )}
 
-          {/* Gráfica 1 – barras horizontales, nombres en eje Y */}
+          {/* Gráfica 1 – barras verticales, nombres en eje X con word-wrap */}
           {chartData.length > 0 && (
             <div className="border-t border-gray-300" style={{ overflow: 'visible' }}>
               <div className="text-center text-[9px] font-semibold text-gray-700 py-0.5">Servicios Asistenciales</div>
-              <div style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
-                <BarChart layout="vertical" width={710} height={chartData.length * 26 + 30} data={chartData}
-                  margin={{ top: 4, right: 36, left: 0, bottom: 4 }} style={{ maxWidth: '100%' }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} interval={0}
-                    tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 8 }} />
-                  <YAxis type="category" dataKey="tipo" width={130} interval={0} tick={<HBarTick x={0} y={0} payload={null} />} />
-                  <ReferenceLine x={100} stroke="#16a34a" strokeDasharray="3 3" />
+              <div style={{ width: '100%', overflowY: 'visible' }}>
+                <BarChart width={710} height={210} data={chartData}
+                  margin={{ top: 14, right: 12, left: 4, bottom: 65 }} barCategoryGap="20%" style={{ maxWidth: '100%' }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="tipo" interval={0} height={65} tick={<XBarTick x={0} y={0} payload={null} />} />
+                  <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} interval={0}
+                    tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 8 }} width={30} />
+                  <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="3 3" />
                   <Tooltip formatter={(v: number) => [`${v}%`, '% Cumplimiento']} contentStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="pct" layout="vertical" radius={[0, 3, 3, 0]} minPointSize={2} isAnimationActive={false} maxBarSize={18}>
-                    <LabelList dataKey="pct" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 8, fontWeight: 'bold', fill: '#000000' }} />
+                  <Bar dataKey="pct" radius={[3, 3, 0, 0]} minPointSize={2} isAnimationActive={false} maxBarSize={55}>
+                    <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 8, fontWeight: 'bold', fill: '#000000' }} />
                     {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Bar>
                 </BarChart>
