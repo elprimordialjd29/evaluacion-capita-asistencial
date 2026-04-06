@@ -2844,15 +2844,50 @@ function App() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Rol</label>
-                <select
-                  value={userForm.role}
-                  onChange={e => setUserForm(p => ({ ...p, role: e.target.value as 'admin' | 'general' }))}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/30 outline-none"
-                >
-                  <option value="general">General — Solo crear prestadores + Actas</option>
-                  <option value="admin">Administrador — Acceso completo</option>
-                </select>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-2">Rol</label>
+                <div className="space-y-2">
+                  {([
+                    { value: 'general', label: 'General', desc: 'Carga de datos, prestadores y actas', icon: '👤', color: 'indigo' },
+                    { value: 'admin',   label: 'Administrador', desc: 'Acceso completo al sistema', icon: '🛡️', color: 'violet' },
+                  ] as { value: 'admin'|'general'; label: string; desc: string; icon: string; color: string }[]).map(opt => {
+                    const selected = userForm.role === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setUserForm(p => ({ ...p, role: opt.value }))}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${
+                          selected
+                            ? opt.color === 'violet'
+                              ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                              : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900'
+                        }`}
+                      >
+                        {/* Radio circle */}
+                        <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selected
+                            ? opt.color === 'violet' ? 'border-violet-500' : 'border-indigo-500'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {selected && (
+                            <div className={`w-2.5 h-2.5 rounded-full ${opt.color === 'violet' ? 'bg-violet-500' : 'bg-indigo-500'}`} />
+                          )}
+                        </div>
+                        <span className="text-lg leading-none">{opt.icon}</span>
+                        <div className="flex-1">
+                          <p className={`text-sm font-semibold ${selected ? (opt.color === 'violet' ? 'text-violet-700 dark:text-violet-300' : 'text-indigo-700 dark:text-indigo-300') : 'text-slate-700 dark:text-slate-200'}`}>
+                            {opt.label}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{opt.desc}</p>
+                        </div>
+                        {selected && (
+                          <Check className={`shrink-0 h-4 w-4 ${opt.color === 'violet' ? 'text-violet-500' : 'text-indigo-500'}`} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl">
