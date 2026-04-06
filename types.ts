@@ -4,6 +4,7 @@ export interface AppUser {
   password: string;
   nombre: string;
   role: 'admin' | 'general';
+  permissions?: string[]; // granular permissions for general users
 }
 
 export interface ServiceTypeMeta {

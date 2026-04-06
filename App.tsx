@@ -27,7 +27,17 @@ const MESES_NOMBRES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Juli
 
 const DEFAULT_USERS: AppUser[] = [
   { id: '1', username: 'admin', password: 'admin123', nombre: 'Administrador', role: 'admin' },
-  { id: '2', username: 'general', password: 'general123', nombre: 'Usuario General', role: 'general' },
+  { id: '2', username: 'general', password: 'general123', nombre: 'Usuario General', role: 'general', permissions: ['dashboard','carga','prestadores','actas'] },
+];
+
+const ALL_PERMISSIONS = [
+  { key: 'dashboard',     label: 'Dashboard',              desc: 'Ver estadísticas y gráficas generales',    icon: '📊' },
+  { key: 'carga',         label: 'Carga de Datos',         desc: 'Subir y procesar archivos RIPS',           icon: '📂' },
+  { key: 'prestadores',   label: 'Gestión de Prestadores', desc: 'Crear, editar y consultar prestadores',    icon: '🏥' },
+  { key: 'actas',         label: 'Actas de Evaluación',    desc: 'Generar y gestionar actas',                icon: '📋' },
+  { key: 'reportes',      label: 'Reportes',               desc: 'Ver y exportar reportes en Excel y PDF',   icon: '📈' },
+  { key: 'mantenimiento', label: 'Mantenimiento',          desc: 'CUPS personalizados y tipos de servicio',  icon: '⚙️' },
+  { key: 'usuarios',      label: 'Gestión de Usuarios',    desc: 'Crear y editar usuarios del sistema',      icon: '👥' },
 ];
 
 function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u: AppUser) => void; theme: 'light'|'dark' }) {
@@ -222,7 +232,7 @@ function App() {
   // User form state (for admin user management)
   const [showUserForm, setShowUserForm] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);
-  const [userForm, setUserForm] = useState<{ username: string; password: string; nombre: string; role: 'admin' | 'general' }>({ username: '', password: '', nombre: '', role: 'general' });
+  const [userForm, setUserForm] = useState<{ username: string; password: string; nombre: string; role: 'admin' | 'general'; permissions: string[] }>({ username: '', password: '', nombre: '', role: 'general', permissions: ['dashboard','carga','prestadores','actas'] });
 
   // Prestador detectado en RIPS
   const [detectedPrestadorId, setDetectedPrestadorId] = useState<string | null>(null);
@@ -756,13 +766,13 @@ function App() {
   };
 
   const handleSaveUser = () => {
-    const { username, password, nombre, role } = userForm;
+    const { username, password, nombre, role, permissions } = userForm;
     if (!username.trim() || !password.trim() || !nombre.trim()) return;
+    const effectivePerms = role === 'admin' ? undefined : permissions;
     if (editUser) {
-      setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, username: username.trim(), password, nombre: nombre.trim(), role } : u));
-      // Update session if editing yourself
+      setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, username: username.trim(), password, nombre: nombre.trim(), role, permissions: effectivePerms } : u));
       if (currentUser?.id === editUser.id) {
-        const updated = { ...currentUser, username: username.trim(), password, nombre: nombre.trim(), role };
+        const updated = { ...currentUser, username: username.trim(), password, nombre: nombre.trim(), role, permissions: effectivePerms };
         setCurrentUser(updated);
         sessionStorage.setItem('currentUser', JSON.stringify(updated));
       }
@@ -771,11 +781,11 @@ function App() {
         setMessage({ type: 'error', text: 'Ya existe un usuario con ese nombre.' });
         return;
       }
-      setUsers(prev => [...prev, { id: Date.now().toString(), username: username.trim(), password, nombre: nombre.trim(), role }]);
+      setUsers(prev => [...prev, { id: Date.now().toString(), username: username.trim(), password, nombre: nombre.trim(), role, permissions: effectivePerms }]);
     }
     setShowUserForm(false);
     setEditUser(null);
-    setUserForm({ username: '', password: '', nombre: '', role: 'general' });
+    setUserForm({ username: '', password: '', nombre: '', role: 'general', permissions: ['dashboard','carga','prestadores','actas'] });
     setMessage({ type: 'success', text: editUser ? 'Usuario actualizado.' : 'Usuario creado.' });
   };
 
@@ -1332,6 +1342,7 @@ function App() {
   );
 
   const isAdmin = currentUser.role === 'admin';
+  const hasPerm = (key: string) => isAdmin || (currentUser.permissions ?? []).includes(key);
 
   return (
     <div className="min-h-screen pb-20 font-sans transition-colors duration-300">
@@ -1399,12 +1410,15 @@ function App() {
           >
             <BarChart3 className="h-4 w-4" /> Dashboard
           </button>
+          {(hasPerm('mantenimiento') || hasPerm('usuarios') || hasPerm('prestadores')) && (
           <button
             onClick={() => setActiveTab('mantenimiento')}
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'mantenimiento' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
             <Settings className="h-4 w-4" /> Mantenimiento
           </button>
+          )}
+          {hasPerm('actas') && (
           <button
             onClick={() => setActiveTab('actas')}
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'actas' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -1414,12 +1428,15 @@ function App() {
               <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{actas.length}</span>
             )}
           </button>
+          )}
+          {hasPerm('reportes') && (
           <button
             onClick={() => setActiveTab('reportes')}
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'reportes' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
             <FileText className="h-4 w-4" /> Reportes
           </button>
+          )}
         </div>
       </header>
 
@@ -2297,13 +2314,13 @@ function App() {
             {/* Sub-tabs */}
             <div className="flex flex-wrap gap-2">
               {([
-                { key: 'prestadores', label: 'Prestadores',         icon: <Building2 className="h-4 w-4" />,   adminOnly: false },
-                { key: 'cups',        label: 'CUPS Personalizados', icon: <FileJson className="h-4 w-4" />,    adminOnly: true },
-                { key: 'servicios',   label: 'Tipos de Servicio',   icon: <Stethoscope className="h-4 w-4" />, adminOnly: true },
-                { key: 'usuarios',    label: 'Usuarios',            icon: <Users className="h-4 w-4" />,       adminOnly: true },
-                { key: 'monitor',     label: 'Monitor',             icon: <Activity className="h-4 w-4" />,    adminOnly: true },
-              ] as { key: 'prestadores'|'cups'|'servicios'|'usuarios'|'monitor', label: string, icon: React.ReactNode, adminOnly: boolean }[])
-              .filter(t => !t.adminOnly || isAdmin)
+                { key: 'prestadores', label: 'Prestadores',         icon: <Building2 className="h-4 w-4" />,   show: hasPerm('prestadores') },
+                { key: 'cups',        label: 'CUPS Personalizados', icon: <FileJson className="h-4 w-4" />,    show: hasPerm('mantenimiento') },
+                { key: 'servicios',   label: 'Tipos de Servicio',   icon: <Stethoscope className="h-4 w-4" />, show: hasPerm('mantenimiento') },
+                { key: 'usuarios',    label: 'Usuarios',            icon: <Users className="h-4 w-4" />,       show: hasPerm('usuarios') },
+                { key: 'monitor',     label: 'Monitor',             icon: <Activity className="h-4 w-4" />,    show: isAdmin },
+              ] as { key: 'prestadores'|'cups'|'servicios'|'usuarios'|'monitor', label: string, icon: React.ReactNode, show: boolean }[])
+              .filter(t => t.show)
               .map(({ key, label, icon }) => (
                 <button
                   key={key}
@@ -2743,7 +2760,7 @@ function App() {
                     <Users className="h-5 w-5 text-indigo-500" /> Gestión de Usuarios
                   </h2>
                   <button
-                    onClick={() => { setUserForm({ username: '', password: '', nombre: '', role: 'general' }); setEditUser(null); setShowUserForm(true); }}
+                    onClick={() => { setUserForm({ username: '', password: '', nombre: '', role: 'general', permissions: ['dashboard','carga','prestadores','actas'] }); setEditUser(null); setShowUserForm(true); }}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all shadow-md shadow-indigo-500/20"
                   >
                     <Plus className="h-4 w-4" /> Nuevo Usuario
@@ -2778,7 +2795,7 @@ function App() {
                           <td className="px-4 py-3 text-center">
                             <div className="flex justify-center gap-1">
                               <button
-                                onClick={() => { setEditUser(u); setUserForm({ username: u.username, password: u.password, nombre: u.nombre, role: u.role }); setShowUserForm(true); }}
+                                onClick={() => { setEditUser(u); setUserForm({ username: u.username, password: u.password, nombre: u.nombre, role: u.role, permissions: u.permissions ?? ['dashboard','carga','prestadores','actas'] }); setShowUserForm(true); }}
                                 className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition-colors"
                                 title="Editar"
                               ><Pencil className="h-4 w-4" /></button>
@@ -2843,52 +2860,77 @@ function App() {
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/30 outline-none font-mono"
                 />
               </div>
+              {/* Rol base */}
               <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-2">Rol</label>
-                <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-2">Tipo de Acceso</label>
+                <div className="grid grid-cols-2 gap-2">
                   {([
-                    { value: 'general', label: 'General', desc: 'Carga de datos, prestadores y actas', icon: '👤', color: 'indigo' },
-                    { value: 'admin',   label: 'Administrador', desc: 'Acceso completo al sistema', icon: '🛡️', color: 'violet' },
+                    { value: 'general', label: 'General',        desc: 'Permisos personalizados', icon: '👤', color: 'indigo' },
+                    { value: 'admin',   label: 'Administrador',  desc: 'Acceso completo',          icon: '🛡️', color: 'violet' },
                   ] as { value: 'admin'|'general'; label: string; desc: string; icon: string; color: string }[]).map(opt => {
                     const selected = userForm.role === opt.value;
                     return (
-                      <button
-                        key={opt.value}
-                        type="button"
+                      <button key={opt.value} type="button"
                         onClick={() => setUserForm(p => ({ ...p, role: opt.value }))}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${
-                          selected
-                            ? opt.color === 'violet'
-                              ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
-                              : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900'
-                        }`}
-                      >
-                        {/* Radio circle */}
-                        <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          selected
-                            ? opt.color === 'violet' ? 'border-violet-500' : 'border-indigo-500'
-                            : 'border-slate-300 dark:border-slate-600'
-                        }`}>
-                          {selected && (
-                            <div className={`w-2.5 h-2.5 rounded-full ${opt.color === 'violet' ? 'bg-violet-500' : 'bg-indigo-500'}`} />
-                          )}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${selected ? (opt.color === 'violet' ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20') : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-slate-50 dark:bg-slate-900'}`}>
+                        <div className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${selected ? (opt.color === 'violet' ? 'border-violet-500' : 'border-indigo-500') : 'border-slate-300 dark:border-slate-600'}`}>
+                          {selected && <div className={`w-2 h-2 rounded-full ${opt.color === 'violet' ? 'bg-violet-500' : 'bg-indigo-500'}`} />}
                         </div>
-                        <span className="text-lg leading-none">{opt.icon}</span>
-                        <div className="flex-1">
-                          <p className={`text-sm font-semibold ${selected ? (opt.color === 'violet' ? 'text-violet-700 dark:text-violet-300' : 'text-indigo-700 dark:text-indigo-300') : 'text-slate-700 dark:text-slate-200'}`}>
-                            {opt.label}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{opt.desc}</p>
+                        <span>{opt.icon}</span>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{opt.label}</p>
+                          <p className="text-[10px] text-slate-400">{opt.desc}</p>
                         </div>
-                        {selected && (
-                          <Check className={`shrink-0 h-4 w-4 ${opt.color === 'violet' ? 'text-violet-500' : 'text-indigo-500'}`} />
-                        )}
                       </button>
                     );
                   })}
                 </div>
               </div>
+
+              {/* Permisos granulares — solo para rol General */}
+              {userForm.role === 'general' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Permisos</label>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setUserForm(p => ({ ...p, permissions: ALL_PERMISSIONS.map(x => x.key) }))}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-700 font-medium">Todos</button>
+                      <span className="text-slate-300">|</span>
+                      <button type="button" onClick={() => setUserForm(p => ({ ...p, permissions: [] }))}
+                        className="text-[10px] text-slate-400 hover:text-slate-600 font-medium">Ninguno</button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+                    {ALL_PERMISSIONS.map(perm => {
+                      const checked = userForm.permissions.includes(perm.key);
+                      return (
+                        <label key={perm.key}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${checked ? 'bg-white dark:bg-slate-800 shadow-sm' : 'hover:bg-white/60 dark:hover:bg-slate-800/40'}`}>
+                          <div
+                            onClick={() => setUserForm(p => ({
+                              ...p,
+                              permissions: checked ? p.permissions.filter(k => k !== perm.key) : [...p.permissions, perm.key]
+                            }))}
+                            className={`shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${checked ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'}`}>
+                            {checked && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                          </div>
+                          <span className="text-base leading-none">{perm.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{perm.label}</p>
+                            <p className="text-xs text-slate-400 truncate">{perm.desc}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {userForm.role === 'admin' && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
+                  <ShieldCheck className="h-4 w-4 text-violet-500 shrink-0" />
+                  <p className="text-xs text-violet-700 dark:text-violet-300">Acceso completo a todas las funciones del sistema</p>
+                </div>
+              )}
             </div>
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl">
               <button
