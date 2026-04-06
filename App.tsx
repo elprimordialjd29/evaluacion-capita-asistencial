@@ -21,6 +21,7 @@ import {
 import { StorageService } from './services/storageService';
 import { CloudStorage } from './services/supabaseClient';
 import ActaModal from './components/ActaModal';
+import ReportesTab from './components/ReportesTab';
 
 const MESES_NOMBRES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -142,7 +143,7 @@ function App() {
   const [jsonFileNames, setJsonFileNames] = useState<string[]>([]);
 
   // Tab Navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas' | 'reportes'>('dashboard');
   const [maintTab, setMaintTab] = useState<'prestadores' | 'cups' | 'servicios' | 'usuarios' | 'monitor'>('prestadores');
 
   // Mantenimiento – Prestadores  (lazy init from localStorage — avoids save-before-load race)
@@ -1397,6 +1398,12 @@ function App() {
             {actas.length > 0 && (
               <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{actas.length}</span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('reportes')}
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'reportes' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            <FileText className="h-4 w-4" /> Reportes
           </button>
         </div>
       </header>
@@ -3317,6 +3324,13 @@ function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ===== REPORTES TAB ===== */}
+      {activeTab === 'reportes' && (
+        <div className="animate-in fade-in duration-300">
+          <ReportesTab actas={actas} prestadores={prestadores} />
         </div>
       )}
 
