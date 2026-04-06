@@ -2822,7 +2822,7 @@ function App() {
       {/* --- User Form Modal --- */}
       {showUserForm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
               <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                 <Users className="h-5 w-5 text-indigo-500" />
@@ -2832,7 +2832,7 @@ function App() {
                 <X className="h-5 w-5 text-slate-500" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Nombre Completo</label>
                 <input
