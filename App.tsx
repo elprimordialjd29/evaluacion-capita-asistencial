@@ -47,8 +47,23 @@ function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u:
     <div className={`min-h-screen flex items-center justify-center p-4 ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-100'}`}>
       <div className={`w-full max-w-sm rounded-2xl shadow-2xl border p-8 ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex flex-col items-center mb-8">
-          <div className="p-3 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-500/30">
-            <ShieldCheck className="h-8 w-8 text-white" />
+          {/* Logo */}
+          <div className="mb-5 relative">
+            <div className="absolute inset-0 rounded-3xl blur-xl opacity-60" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6,#06b6d4)' }} />
+            <div className="relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl" style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed,#0891b2)' }}>
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Bar chart bars */}
+                <rect x="4"  y="30" width="7" height="14" rx="2.5" fill="white" fillOpacity="0.45"/>
+                <rect x="14" y="22" width="7" height="22" rx="2.5" fill="white" fillOpacity="0.65"/>
+                <rect x="24" y="14" width="7" height="30" rx="2.5" fill="white" fillOpacity="0.85"/>
+                <rect x="34" y="6"  width="7" height="38" rx="2.5" fill="white"/>
+                {/* Trend line */}
+                <polyline points="7,28 17,20 27,12 37,4" stroke="white" strokeWidth="2" strokeOpacity="0.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                {/* Check badge */}
+                <circle cx="38" cy="10" r="9" fill="#10b981"/>
+                <polyline points="34,10 37,13 43,7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+            </div>
           </div>
           <h1 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Evaluación Cápita</h1>
           <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Inicia sesión para continuar</p>
