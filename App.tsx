@@ -880,6 +880,60 @@ function App() {
         const txt = await file.text();
         const lines = txt.split(/\r?\n/);
 
+        // ═══════════════════════════════════════════════════════════════
+        // PRE-SCAN AT: busca líneas con código AT (601T01, 601T02, etc.)
+        // en TODO el archivo, SIN depender de encabezados de sección.
+        // Código AT = 3-4 dígitos + letra T + 2 dígitos (ej: 601T01)
+        // ═══════════════════════════════════════════════════════════════
+        const atLineSet = new Set<number>();
+        for (let li = 0; li < lines.length; li++) {
+          const raw = lines[li];
+          if (!raw) continue;
+          // Buscar código AT como campo separado por coma/tab/pipe
+          const hasAtCode = /(?:^|[,|\t])(\d{3,4}T\d{2})(?:[,|\t]|$)/i.test(raw);
+          if (!hasAtCode) continue;
+          const l = raw.trim();
+          const parts = l.includes('\t')
+            ? l.split('\t').map(x => x.trim())
+            : l.split(',').map(x => x.trim().replace(/[|]$/, ''));
+          if (parts.length < 5) continue;
+          // Saltar cabeceras
+          if (/^bill|^productid|^tipo|^clientid|^nombre/i.test(parts[0])) continue;
+          // Encontrar el código AT en los campos
+          const cupsAt = parts.find(p => /^\d{3,4}T\d{2}$/i.test(p.trim()))?.trim().toUpperCase() || '';
+          if (!cupsAt) continue;
+          const cupsIdxAt = parts.findIndex(p => p.trim().toUpperCase() === cupsAt);
+          // Nombre: campo siguiente al código
+          const nombreAt = (cupsIdxAt >= 0 && parts[cupsIdxAt + 1] && parts[cupsIdxAt + 1].trim().length > 3)
+            ? parts[cupsIdxAt + 1].trim() : 'TRASLADO ASISTENCIAL';
+          // Cantidad: primer número >0 y <200 después del nombre
+          let cantidad = 1;
+          for (let pi = cupsIdxAt + 2; pi < parts.length; pi++) {
+            const v = parseInt(parts[pi], 10);
+            if (!isNaN(v) && v > 0 && v < 200) { cantidad = v; break; }
+          }
+          // Paciente: tipo doc + número
+          const ccIdx = parts.findIndex(p => /^(CC|TI|RC|CE|PA|PE|CN|MS)$/i.test(p.trim()));
+          let pacAt = 'SIN_ID';
+          if (ccIdx >= 0 && parts[ccIdx + 1]) {
+            pacAt = normalizeId(parts[ccIdx + 1].trim());
+          }
+          if (!pacAt || pacAt.length < 3 || pacAt === 'SIN_ID') {
+            // Fallback: primer número 6-11 dígitos (excluye NITs de 12+)
+            const found = parts.find(p => /^\d{6,11}$/.test(p.trim()));
+            pacAt = normalizeId(found || '') || 'SIN_ID';
+          }
+          if (pacAt === 'SIN_ID' || pacAt.length < 3) continue;
+
+          const tipoAt = getTipo(cupsAt) || 'TAB';
+          const fechaAt = parseDateFromLine(l);
+          atLineSet.add(li); // marcar línea como procesada
+          for (let q = 0; q < cantidad; q++) {
+            newRegistros.push({ cups: cupsAt, paciente: pacAt, tipo: tipoAt,
+              nombre: isKnown(cupsAt) ? getNombre(cupsAt) : nombreAt, fecha: fechaAt });
+          }
+        }
+
         let section = getSectionFromFilename(file.name);
 
         // Detectar si es archivo AT por nombre: 601T01, AT, AT01, etc.
@@ -889,7 +943,10 @@ function App() {
         // inAtSection: true cuando dentro del archivo hay sección "OTROS SERVICIOS"
         let inAtSection = isAtFile;
 
-        for (const raw of lines) {
+        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+          // Saltar líneas ya procesadas como AT en el pre-scan
+          if (atLineSet.has(lineIdx)) continue;
+          const raw = lines[lineIdx];
           const l = raw.trim();
           if (!l) continue;
 
