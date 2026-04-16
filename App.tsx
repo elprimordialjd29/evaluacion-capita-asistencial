@@ -895,16 +895,20 @@ function App() {
 
           const upperLine = l.toUpperCase();
 
-          if (upperLine.includes("USUARIOS") && (upperLine.includes("*") || upperLine.includes("°") || upperLine.includes("-"))) {
-            section = "USUARIOS"; inAtSection = false; continue;
-          }
-          if (upperLine.includes("MEDICAMENTOS")) {
-            section = "MEDICAMENTOS"; inAtSection = false; continue;
-          }
-          if (upperLine.includes("OTROS SERVICIOS")) {
+          // Headers tipo ---- ARCHIVO-RIPS-XX ---- o texto genérico de sección
+          if (upperLine.includes("ARCHIVO-RIPS-AT") || upperLine.includes("OTROS SERVICIOS")) {
             section = "SERVICIOS"; inAtSection = true; continue;
           }
-          if (upperLine.includes("CONSULTAS") || upperLine.includes("PROCEDIMIENTOS")) {
+          if (upperLine.includes("ARCHIVO-RIPS-US") ||
+              (upperLine.includes("USUARIOS") && (upperLine.includes("*") || upperLine.includes("°") || upperLine.includes("-")))) {
+            section = "USUARIOS"; inAtSection = false; continue;
+          }
+          if (upperLine.includes("ARCHIVO-RIPS-AM") || upperLine.includes("MEDICAMENTOS")) {
+            section = "MEDICAMENTOS"; inAtSection = false; continue;
+          }
+          if (upperLine.includes("ARCHIVO-RIPS-CT") || upperLine.includes("ARCHIVO-RIPS-AC") ||
+              upperLine.includes("ARCHIVO-RIPS-AP") || upperLine.includes("ARCHIVO-RIPS-AU") ||
+              upperLine.includes("CONSULTAS") || upperLine.includes("PROCEDIMIENTOS")) {
             section = "SERVICIOS"; inAtSection = false; continue;
           }
 
