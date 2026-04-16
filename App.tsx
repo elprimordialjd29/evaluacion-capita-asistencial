@@ -2130,7 +2130,7 @@ function App() {
                       cursor={{fill: chartColors.grid, opacity: 0.5}}
                     />
                     <Legend verticalAlign="top" height={36}/>
-                    <Bar dataKey="ejecutado" name="Ejecutado (Real)" fill="#10b981" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="ejecutado" name="Ejecutado (Real)" fill="#10b981" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="ejecutado" position="top" fill={theme === 'dark' ? "#ffffff" : "#0f172a"} fontSize={10} />
                     </Bar>
                   </BarChart>
@@ -2169,7 +2169,7 @@ function App() {
                     ]}/>
                     <ReferenceLine y={80} stroke="#eab308" strokeDasharray="3 3" />
                     <ReferenceLine y={100} stroke="#10b981" strokeDasharray="3 3" />
-                    <Bar dataKey="cumplimiento" name="%" radius={[4, 4, 0, 0]} minPointSize={3}>
+                    <Bar dataKey="cumplimiento" name="%" radius={[4, 4, 0, 0]} minPointSize={3} isAnimationActive={false}>
                       {chartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
