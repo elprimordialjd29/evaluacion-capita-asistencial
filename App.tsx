@@ -955,19 +955,32 @@ function App() {
             continue;
           }
 
-          // ── Archivo AT (Otros Servicios): parseo por columnas ──────────────
+          // ── Archivo AT (Otros Servicios): busca código por patrón, no por índice ──
           if (isAtFile) {
-            // Columnas AT: BILL|NIT|TYPEDOCU|DOCUMENTO|edad||TYPE|PRODUCTID|NOMBRE_SERVICIO|CANTIDAD|...
-            if (parts.length < 8) continue;
-            // Saltar línea de cabecera
-            if (/^bill|^productid|^tipo/i.test(parts[0])) continue;
-            const cupsAt = (parts[7] || '').toUpperCase().trim();
-            if (!cupsAt || !/^[0-9][0-9A-Za-z]{4,6}$/.test(cupsAt)) continue;
-            const nombreAt = parts[8]?.trim() || 'OTROS SERVICIOS';
-            const cantidad = parseInt(parts[9] || '1', 10) || 1;
-            // Paciente: buscar en parts[3] o primer número largo
-            const pacAt = normalizeId(parts[3]?.trim() || '') ||
-              normalizeId(parts.find(p => /^\d{6,15}$/.test(p)) || '') || 'SIN_ID';
+            if (parts.length < 4) continue;
+            // Saltar cabeceras
+            if (/^bill|^productid|^tipo|^clientid/i.test(parts[0])) continue;
+            // Buscar el código AT: primer campo que sea dígito+alfanumérico de 6 chars (ej. 601T01)
+            let cupsAt = '';
+            let cupsIdx = -1;
+            for (let pi = 0; pi < parts.length; pi++) {
+              const v = parts[pi].trim().toUpperCase();
+              if (/^[0-9][0-9A-Z]{5}$/.test(v)) { cupsAt = v; cupsIdx = pi; break; }
+            }
+            if (!cupsAt) continue;
+            // Nombre del servicio: columna siguiente al código
+            const nombreAt = (cupsIdx >= 0 && parts[cupsIdx + 1])
+              ? parts[cupsIdx + 1].trim() : 'OTROS SERVICIOS';
+            // Cantidad: buscar columna numérica >0 después del nombre
+            let cantidad = 1;
+            for (let pi = cupsIdx + 2; pi < parts.length; pi++) {
+              const v = parseInt(parts[pi], 10);
+              if (!isNaN(v) && v > 0 && v < 1000) { cantidad = v; break; }
+            }
+            // Paciente: número largo (6-15 dígitos) que no sea el NIT/clientid (>11 dígitos usualmente NIT)
+            const pacAt = normalizeId(
+              parts.find(p => /^\d{6,15}$/.test(p.trim()) && p.trim().length >= 6 && p.trim().length <= 12) || ''
+            ) || 'SIN_ID';
             if (pacAt === 'SIN_ID' || pacAt.length < 3) continue;
             const tipoAt = getTipo(cupsAt) || 'OTROS SERVICIOS';
             const fechaAt = parseDateFromLine(l);
