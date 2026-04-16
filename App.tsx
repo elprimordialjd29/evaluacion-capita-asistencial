@@ -882,9 +882,12 @@ function App() {
 
         let section = getSectionFromFilename(file.name);
 
-        // Detectar si es archivo AT (Otros Servicios): nombre tipo 601T01 o empieza con AT
+        // Detectar si es archivo AT por nombre: 601T01, AT, AT01, etc.
         const nameUp = file.name.toUpperCase().replace(/\.[^.]+$/, '');
         const isAtFile = nameUp.startsWith('AT') || /^\d+T\d+$/.test(nameUp);
+
+        // inAtSection: true cuando dentro del archivo hay sección "OTROS SERVICIOS"
+        let inAtSection = isAtFile;
 
         for (const raw of lines) {
           const l = raw.trim();
@@ -893,16 +896,16 @@ function App() {
           const upperLine = l.toUpperCase();
 
           if (upperLine.includes("USUARIOS") && (upperLine.includes("*") || upperLine.includes("°") || upperLine.includes("-"))) {
-            section = "USUARIOS";
-            continue;
+            section = "USUARIOS"; inAtSection = false; continue;
           }
           if (upperLine.includes("MEDICAMENTOS")) {
-            section = "MEDICAMENTOS";
-            continue;
+            section = "MEDICAMENTOS"; inAtSection = false; continue;
           }
-          if (upperLine.includes("CONSULTAS") || upperLine.includes("PROCEDIMIENTOS") || upperLine.includes("OTROS SERVICIOS")) {
-            section = "SERVICIOS";
-            continue;
+          if (upperLine.includes("OTROS SERVICIOS")) {
+            section = "SERVICIOS"; inAtSection = true; continue;
+          }
+          if (upperLine.includes("CONSULTAS") || upperLine.includes("PROCEDIMIENTOS")) {
+            section = "SERVICIOS"; inAtSection = false; continue;
           }
 
           let parts: string[] = [];
@@ -955,8 +958,8 @@ function App() {
             continue;
           }
 
-          // ── Archivo AT (Otros Servicios): busca código por patrón, no por índice ──
-          if (isAtFile) {
+          // ── Sección AT (Otros Servicios): archivo AT o header "OTROS SERVICIOS" dentro ──
+          if (inAtSection) {
             if (parts.length < 4) continue;
             // Saltar cabeceras
             if (/^bill|^productid|^tipo|^clientid/i.test(parts[0])) continue;
