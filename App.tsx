@@ -858,10 +858,20 @@ function App() {
       const newUsuariosMap = new Map<string, UserRecord>(usuariosMap);
 
       const getSectionFromFilename = (name: string) => {
-        const n = name.toUpperCase();
+        const n = name.toUpperCase().replace(/\.[^.]+$/, ''); // quitar extensión
+        // Nombres que empiezan con tipo: US*, AM*, AC*, AP*, AT*
         if (n.startsWith("US")) return "USUARIOS";
         if (n.startsWith("AM")) return "MEDICAMENTOS";
         if (n.startsWith("AC") || n.startsWith("AP") || n.startsWith("AT")) return "SERVICIOS";
+        // Nombres tipo NIT+letra+seq: 601T01, 890201C01, 601P02, etc.
+        // La letra entre dígitos indica el tipo RIPS
+        const m = n.match(/^\d+([A-Z])\d+$/);
+        if (m) {
+          const t = m[1];
+          if (t === 'U') return "USUARIOS";
+          if (t === 'M') return "MEDICAMENTOS";
+          if (t === 'C' || t === 'P' || t === 'T' || t === 'A') return "SERVICIOS";
+        }
         return "";
       };
 
