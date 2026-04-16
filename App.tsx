@@ -896,7 +896,9 @@ function App() {
           const upperLine = l.toUpperCase();
 
           // Headers tipo ---- ARCHIVO-RIPS-XX ---- o texto genérico de sección
-          if (upperLine.includes("ARCHIVO-RIPS-AT") || upperLine.includes("OTROS SERVICIOS")) {
+          // Detectar sección AT: encabezado explícito O línea contiene solo texto de sección (sin datos)
+          if (upperLine.includes("ARCHIVO-RIPS-AT") || upperLine.includes("OTROS SERVICIOS") ||
+              (/RIPS.*AT\b|^.*-\s*AT\s*-.*$/.test(upperLine) && !l.includes(','))) {
             section = "SERVICIOS"; inAtSection = true; continue;
           }
           if (upperLine.includes("ARCHIVO-RIPS-US") ||
@@ -965,6 +967,19 @@ function App() {
             continue;
           }
 
+          // ── Helper: extraer paciente desde una línea AT ──────────────────────
+          const extractAtPatient = (lineStr: string, lineParts: string[]): string => {
+            // 1. Buscar tipo de documento seguido del número (CC,1124010373)
+            const ccIdx = lineParts.findIndex(p => /^(CC|TI|RC|CE|PA|PE|CN|MS)$/i.test(p.trim()));
+            if (ccIdx >= 0 && lineParts[ccIdx + 1]) {
+              const id = normalizeId(lineParts[ccIdx + 1].trim());
+              if (id && id.length >= 3) return id;
+            }
+            // 2. Fallback: primer número entre 6 y 11 dígitos (excluye NITs de 12+)
+            const found = lineParts.find(p => /^\d{6,11}$/.test(p.trim()));
+            return normalizeId(found || '') || 'SIN_ID';
+          };
+
           // ── Sección AT (Otros Servicios): archivo AT o header "OTROS SERVICIOS" dentro ──
           if (inAtSection) {
             if (parts.length < 4) continue;
@@ -987,10 +1002,7 @@ function App() {
               const v = parseInt(parts[pi], 10);
               if (!isNaN(v) && v > 0 && v < 1000) { cantidad = v; break; }
             }
-            // Paciente: número largo (6-15 dígitos) que no sea el NIT/clientid (>11 dígitos usualmente NIT)
-            const pacAt = normalizeId(
-              parts.find(p => /^\d{6,15}$/.test(p.trim()) && p.trim().length >= 6 && p.trim().length <= 12) || ''
-            ) || 'SIN_ID';
+            const pacAt = extractAtPatient(l, parts);
             if (pacAt === 'SIN_ID' || pacAt.length < 3) continue;
             const tipoAt = getTipo(cupsAt) || 'OTROS SERVICIOS';
             const fechaAt = parseDateFromLine(l);
@@ -1006,7 +1018,32 @@ function App() {
           if (!mC) continue;
           const cups = mC[1].toUpperCase();
 
-          if (!isKnown(cups)) continue;
+          // ── Fallback AT: detectar códigos AT (601T01, 601T02…) aunque no se haya
+          //    activado inAtSection (encabezado distinto, codificación, etc.)
+          const isAtCode = /^\d{3,4}[A-Z]\d{2}$/.test(cups);
+
+          if (!isKnown(cups) && !isAtCode) continue;
+
+          if (isAtCode) {
+            // Saltar cabeceras
+            if (/^bill|^productid|^tipo|^clientid/i.test(parts[0])) continue;
+            const cupsIdxFb = parts.findIndex(p => p.trim().toUpperCase() === cups);
+            const nombreFb = (cupsIdxFb >= 0 && parts[cupsIdxFb + 1])
+              ? parts[cupsIdxFb + 1].trim() : 'TRASLADO / OTRO SERVICIO';
+            let cantidadFb = 1;
+            for (let pi = (cupsIdxFb >= 0 ? cupsIdxFb : 0) + 2; pi < parts.length; pi++) {
+              const v = parseInt(parts[pi], 10);
+              if (!isNaN(v) && v > 0 && v < 1000) { cantidadFb = v; break; }
+            }
+            const pacFb = extractAtPatient(l, parts);
+            if (pacFb === 'SIN_ID' || pacFb.length < 3) continue;
+            const tipoFb = getTipo(cups) || 'OTROS SERVICIOS';
+            const fechaFb = parseDateFromLine(l);
+            for (let q = 0; q < cantidadFb; q++) {
+              newRegistros.push({ cups, paciente: pacFb, tipo: tipoFb, nombre: isKnown(cups) ? getNombre(cups) : nombreFb, fecha: fechaFb });
+            }
+            continue;
+          }
 
           const tipo = getTipo(cups);
           if (!tipo) continue;
