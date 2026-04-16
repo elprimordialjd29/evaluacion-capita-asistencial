@@ -909,7 +909,10 @@ function App() {
           }
 
           let parts: string[] = [];
-          if (l.includes(',') && (l.match(/,/g) || []).length >= 3) {
+          if (l.includes('\t') && l.split('\t').length >= 3) {
+            // TAB-separado (formato AT/Otros Servicios y algunos RIPS)
+            parts = l.split('\t').map(x => x.trim());
+          } else if (l.includes(',') && (l.match(/,/g) || []).length >= 3) {
             parts = l.split(',').map(x => x.trim().replace(/[|]$/, ''));
           } else if (l.includes('|')) {
             parts = l.split('|').map(x => x.trim());
