@@ -882,6 +882,10 @@ function App() {
 
         let section = getSectionFromFilename(file.name);
 
+        // Detectar si es archivo AT (Otros Servicios): nombre tipo 601T01 o empieza con AT
+        const nameUp = file.name.toUpperCase().replace(/\.[^.]+$/, '');
+        const isAtFile = nameUp.startsWith('AT') || /^\d+T\d+$/.test(nameUp);
+
         for (const raw of lines) {
           const l = raw.trim();
           if (!l) continue;
@@ -951,6 +955,29 @@ function App() {
             continue;
           }
 
+          // ── Archivo AT (Otros Servicios): parseo por columnas ──────────────
+          if (isAtFile) {
+            // Columnas AT: BILL|NIT|TYPEDOCU|DOCUMENTO|edad||TYPE|PRODUCTID|NOMBRE_SERVICIO|CANTIDAD|...
+            if (parts.length < 8) continue;
+            // Saltar línea de cabecera
+            if (/^bill|^productid|^tipo/i.test(parts[0])) continue;
+            const cupsAt = (parts[7] || '').toUpperCase().trim();
+            if (!cupsAt || !/^[0-9][0-9A-Za-z]{4,6}$/.test(cupsAt)) continue;
+            const nombreAt = parts[8]?.trim() || 'OTROS SERVICIOS';
+            const cantidad = parseInt(parts[9] || '1', 10) || 1;
+            // Paciente: buscar en parts[3] o primer número largo
+            const pacAt = normalizeId(parts[3]?.trim() || '') ||
+              normalizeId(parts.find(p => /^\d{6,15}$/.test(p)) || '') || 'SIN_ID';
+            if (pacAt === 'SIN_ID' || pacAt.length < 3) continue;
+            const tipoAt = getTipo(cupsAt) || 'OTROS SERVICIOS';
+            const fechaAt = parseDateFromLine(l);
+            for (let q = 0; q < cantidad; q++) {
+              newRegistros.push({ cups: cupsAt, paciente: pacAt, tipo: tipoAt, nombre: isKnown(cupsAt) ? getNombre(cupsAt) : nombreAt, fecha: fechaAt });
+            }
+            continue;
+          }
+
+          // ── Archivos normales (AC, AP, CT, etc.) ────────────────────────────
           // Match numeric (890201) or alphanumeric (601T01, 5DS002, 130B01) CUPS codes
           const mC = l.match(/\b([0-9][0-9A-Za-z]{5})\b/);
           if (!mC) continue;
