@@ -1408,17 +1408,39 @@ function App() {
 
   // --- Exports ---
   const handleExportGlobal = () => {
-    const wb = utils.book_new();
-    utils.book_append_sheet(wb, utils.json_to_sheet(chartData), "Metas_vs_Ejecutado");
-    utils.book_append_sheet(wb, utils.json_to_sheet(rankingCUPS), "Ranking_CUPS");
-    
-    const exportPat = rankingPacientes.map(p => ({
-      ...p,
-      ListaCUPS: p.ListaCUPS.join("\n"),
-      ListaFechas: p.ListaFechas.join("\n")
-    }));
-    utils.book_append_sheet(wb, utils.json_to_sheet(exportPat), "Ranking_Pacientes");
-    writeFile(wb, "Reporte_Global_Auditoria.xlsx");
+    try {
+      const wb = utils.book_new();
+
+      // Hoja 1: Metas vs Ejecutado
+      utils.book_append_sheet(wb, utils.json_to_sheet(chartData), "Metas_vs_Ejecutado");
+
+      // Hoja 2: Ranking CUPS
+      utils.book_append_sheet(wb, utils.json_to_sheet(rankingCUPS), "Ranking_CUPS");
+
+      // Hoja 3: Ranking Pacientes — deduplicar CUPS y fechas para evitar crash por celdas gigantes
+      const exportPat = rankingPacientes.map(p => {
+        const cupsUnicos = [...new Set(p.ListaCUPS)].join(", ");
+        const fechaMin = p.ListaFechas.filter(Boolean).sort()[0] || "";
+        const fechaMax = p.ListaFechas.filter(Boolean).sort().slice(-1)[0] || "";
+        return {
+          PacienteId:      p.PacienteId,
+          Nombre:          p.Nombre,
+          Sexo:            p.Sexo,
+          Edad:            p.Edad,
+          GrupoEtario:     p.GrupoEtario,
+          TotalAtenciones: p.TotalAtenciones,
+          CUPS_Utilizados: cupsUnicos.slice(0, 500),   // límite seguro Excel
+          FechaPrimera:    fechaMin,
+          FechaUltima:     fechaMax,
+        };
+      });
+      utils.book_append_sheet(wb, utils.json_to_sheet(exportPat), "Ranking_Pacientes");
+
+      writeFile(wb, "Reporte_Global_Auditoria.xlsx");
+    } catch (err) {
+      console.error("Export Global error:", err);
+      setMessage({ type: 'error', text: `Error al exportar: ${(err as Error).message || err}` });
+    }
   };
 
   const handleExportRankingPacientes = () => {
