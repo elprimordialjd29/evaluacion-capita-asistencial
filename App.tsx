@@ -637,7 +637,7 @@ function App() {
     const numero = `${p.contrato}-${prestadorActas.length + 1}`;
     const ripsPertenecenAlPrestador = detectedPrestadorId === p.id;
     const servicios: ActaServicio[] = p.metas
-      .filter(m => m.monthlyGoal > 0)
+      .filter(m => m.active && m.monthlyGoal > 0)
       .map(m => {
         const ejecutado = (ripsPertenecenAlPrestador && metas.find(x => x.type === m.type)) ?
           (chartData.find(c => c.name === m.type)?.ejecutado || 0) : 0;
@@ -3544,7 +3544,8 @@ function App() {
                               type="button"
                               onClick={() => {
                                 const newMetas = [...prestForm.metas];
-                                newMetas[idx] = { ...newMetas[idx], active: !newMetas[idx].active };
+                                const wasActive = newMetas[idx].active;
+                                newMetas[idx] = { ...newMetas[idx], active: !wasActive, monthlyGoal: wasActive ? 0 : newMetas[idx].monthlyGoal };
                                 setPrestForm(prev => ({ ...prev, metas: newMetas }));
                               }}
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border ${
