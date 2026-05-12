@@ -637,7 +637,7 @@ function App() {
     const numero = `${p.contrato}-${prestadorActas.length + 1}`;
     const ripsPertenecenAlPrestador = detectedPrestadorId === p.id;
     const servicios: ActaServicio[] = p.metas
-      .filter(m => m.monthlyGoal > 0 || m.active)
+      .filter(m => m.monthlyGoal > 0)
       .map(m => {
         const ejecutado = (ripsPertenecenAlPrestador && metas.find(x => x.type === m.type)) ?
           (chartData.find(c => c.name === m.type)?.ejecutado || 0) : 0;
