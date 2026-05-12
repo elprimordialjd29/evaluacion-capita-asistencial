@@ -335,7 +335,7 @@ function App() {
     if (activeTab !== 'actas') return;
     if (inlineActa) return;
     if (actas.length > 0) {
-      setInlineActa({ ...actas[actas.length - 1] });
+      setInlineActa(sanitizeActaServicios({ ...actas[actas.length - 1] }));
     } else {
       setInlineActa(makeBlankActa());
     }
@@ -697,6 +697,15 @@ function App() {
     setMessage({ type: 'success', text: `Acta ${editingActa.numero} guardada.` });
   };
 
+  const sanitizeActaServicios = (acta: Acta): Acta => {
+    const p = prestadores.find(x => x.id === acta.prestadorId) || prestadores.find(x => x.nit === acta.nit);
+    if (!p) return acta;
+    const contratados = new Set(p.metas.filter(m => m.active && m.monthlyGoal > 0).map(m => m.type));
+    const serviciosFiltrados = acta.servicios.filter(s => contratados.has(s.tipo));
+    if (serviciosFiltrados.length === acta.servicios.length) return acta;
+    return { ...acta, servicios: serviciosFiltrados };
+  };
+
   const handleDeleteActa = (id: string) => {
     if (confirm('¿Eliminar esta acta?')) {
       setActas(prev => prev.filter(a => a.id !== id));
@@ -704,7 +713,7 @@ function App() {
   };
 
   const handleEditActa = (acta: Acta) => {
-    setInlineActa({ ...acta });
+    setInlineActa(sanitizeActaServicios({ ...acta }));
     setActiveTab('actas');
   };
 
@@ -1785,7 +1794,7 @@ function App() {
                                     <div className="flex items-center gap-2">
                                       <span className="text-[11px] font-bold" style={{ color }}>{cumpl}%</span>
                                       <button
-                                        onClick={e => { e.stopPropagation(); setInlineActa({ ...a }); setActiveTab('actas'); }}
+                                        onClick={e => { e.stopPropagation(); setInlineActa(sanitizeActaServicios({ ...a })); setActiveTab('actas'); }}
                                         className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 rounded transition-colors"
                                       >
                                         Ver
@@ -3339,7 +3348,7 @@ function App() {
                 {actas.length > 1 && !inlineActa && (
                   <div className="flex gap-1 flex-wrap">
                     {actas.map((a, i) => (
-                      <button key={a.id} onClick={() => setInlineActa({ ...a })}
+                      <button key={a.id} onClick={() => setInlineActa(sanitizeActaServicios({ ...a }))}
                         className="px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors border border-slate-200 dark:border-slate-700">
                         {a.numero}
                       </button>
@@ -3428,7 +3437,7 @@ function App() {
                   {actas.length > 0 && (
                     <div className="flex gap-2 flex-wrap justify-center">
                       {actas.map(a => (
-                        <button key={a.id} onClick={() => setInlineActa({ ...a })}
+                        <button key={a.id} onClick={() => setInlineActa(sanitizeActaServicios({ ...a }))}
                           className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl text-sm font-mono font-medium transition-all border border-slate-200 dark:border-slate-700">
                           {a.numero || 'Acta sin número'}
                         </button>
@@ -3447,7 +3456,7 @@ function App() {
                   const cumpl = totalProg > 0 ? Math.min(Math.round((totalEjec / totalProg) * 100), 100) : 0;
                   const color = cumpl >= 100 ? '#10b981' : cumpl >= 80 ? '#eab308' : '#ef4444';
                   return (
-                    <button key={a.id} onClick={() => setInlineActa({ ...a })}
+                    <button key={a.id} onClick={() => setInlineActa(sanitizeActaServicios({ ...a }))}
                       className="glass-panel rounded-2xl p-5 text-left shadow-lg hover:shadow-xl transition-all group hover:-translate-y-0.5 w-full">
                       <div className="flex justify-between items-start mb-3">
                         <div>
