@@ -3355,6 +3355,27 @@ function App() {
                     <ChevronLeft className="h-4 w-4" /> Volver a lista
                   </button>
                 )}
+                {inlineActa && inlineActa.prestadorId && (
+                  <button
+                    onClick={() => {
+                      const p = prestadores.find(x => x.id === inlineActa.prestadorId);
+                      if (!p) { setMessage({ type: 'error', text: 'Prestador no encontrado.' }); return; }
+                      const ripsPertenecenAlPrestador = detectedPrestadorId === p.id;
+                      const nuevosServicios: ActaServicio[] = p.metas
+                        .filter(m => m.active && m.monthlyGoal > 0)
+                        .map(m => ({
+                          tipo: m.type,
+                          programado: m.monthlyGoal * scale,
+                          ejecutado: (ripsPertenecenAlPrestador && metas.find(x => x.type === m.type))
+                            ? (chartData.find(c => c.name === m.type)?.ejecutado || 0) : 0
+                        }));
+                      setInlineActa(prev => prev ? { ...prev, servicios: nuevosServicios } : prev);
+                      setMessage({ type: 'success', text: 'Servicios actualizados según las metas del prestador.' });
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-all shadow-md shadow-amber-500/20 whitespace-nowrap">
+                    ↺ Recalcular Servicios
+                  </button>
+                )}
                 {prestadores.length > 0 && (
                   <button
                     onClick={() => {
