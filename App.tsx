@@ -635,10 +635,11 @@ function App() {
   const handleGenerarActa = (p: Prestador) => {
     const prestadorActas = actas.filter(a => a.prestadorId === p.id);
     const numero = `${p.contrato}-${prestadorActas.length + 1}`;
+    const ripsPertenecenAlPrestador = detectedPrestadorId === p.id;
     const servicios: ActaServicio[] = p.metas
       .filter(m => m.monthlyGoal > 0 || m.active)
       .map(m => {
-        const ejecutado = metas.find(x => x.type === m.type) ?
+        const ejecutado = (ripsPertenecenAlPrestador && metas.find(x => x.type === m.type)) ?
           (chartData.find(c => c.name === m.type)?.ejecutado || 0) : 0;
         return {
           tipo: m.type,
@@ -646,6 +647,9 @@ function App() {
           ejecutado
         };
       });
+    if (!ripsPertenecenAlPrestador && registros.length > 0) {
+      setMessage({ type: 'info', text: `Los RIPS cargados no corresponden a ${p.nombre}. Los valores ejecutados se muestran en 0. Carga los RIPS de este prestador para ver los datos correctos.` });
+    }
     const today = new Date().toISOString().split('T')[0];
     const newActa: Acta = {
       id: Date.now().toString(),
