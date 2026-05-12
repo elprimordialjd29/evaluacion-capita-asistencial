@@ -955,6 +955,8 @@ function App() {
 
         // inAtSection: true cuando dentro del archivo hay sección "OTROS SERVICIOS"
         let inAtSection = isAtFile;
+        // inUrgenciasSection: true para archivos/secciones de urgencias TXT (∞---- ARCHIVO-URGENCIAS ----∞)
+        let inUrgenciasSection = false;
 
         for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
           // Saltar líneas ya procesadas como AT en el pre-scan
@@ -978,10 +980,13 @@ function App() {
           if (upperLine.includes("ARCHIVO-RIPS-AM") || upperLine.includes("MEDICAMENTOS")) {
             section = "MEDICAMENTOS"; inAtSection = false; continue;
           }
+          if (upperLine.includes("ARCHIVO-URGENCIAS") || upperLine.includes("ARCHIVO-RIPS-AU")) {
+            inUrgenciasSection = true; inAtSection = false; section = "URGENCIAS_TXT"; continue;
+          }
           if (upperLine.includes("ARCHIVO-RIPS-CT") || upperLine.includes("ARCHIVO-RIPS-AC") ||
-              upperLine.includes("ARCHIVO-RIPS-AP") || upperLine.includes("ARCHIVO-RIPS-AU") ||
+              upperLine.includes("ARCHIVO-RIPS-AP") ||
               upperLine.includes("CONSULTAS") || upperLine.includes("PROCEDIMIENTOS")) {
-            section = "SERVICIOS"; inAtSection = false; continue;
+            section = "SERVICIOS"; inAtSection = false; inUrgenciasSection = false; continue;
           }
 
           let parts: string[] = [];
@@ -1049,6 +1054,26 @@ function App() {
             const found = lineParts.find(p => /^\d{6,11}$/.test(p.trim()));
             return normalizeId(found || '') || 'SIN_ID';
           };
+
+          // ── Sección URGENCIAS TXT (∞---- ARCHIVO-URGENCIAS ----∞) ──────────────────
+          // Formato: PRESTADOR,TIPO_DOC,ID_PACIENTE,NIT+DATETIME,EDAD,DIAG1,DIAG2,...,|
+          if (inUrgenciasSection) {
+            const urgParts = l.replace(/\|+$/, '').split(',').map(x => x.trim());
+            if (urgParts.length < 3) continue;
+            // Columna 2: ID del paciente (puede ser AS/TI/CC/RC/PT)
+            const idRaw = urgParts[2] || '';
+            const id = normalizeId(idRaw);
+            if (!id || id.length < 3) continue;
+            // Extraer fecha: buscar patrón YYYY-MM-DD en la línea (primer match = ingreso)
+            const dateMatch = l.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+            const fecha = dateMatch ? dateMatch[1] : '';
+            // Registrar paciente si no existe
+            if (!newUsuariosMap.has(id)) {
+              newUsuariosMap.set(id, { id, sexo: '', fnac: '', nombre: '' });
+            }
+            newRegistros.push({ cups: 'URGBC', paciente: id, tipo: 'URGENCIAS BC', nombre: 'Urgencias Baja Complejidad', fecha });
+            continue;
+          }
 
           // ── Sección AT (Otros Servicios): archivo AT o header "OTROS SERVICIOS" dentro ──
           if (inAtSection) {
