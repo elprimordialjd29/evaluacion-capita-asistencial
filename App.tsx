@@ -1193,9 +1193,21 @@ function App() {
 
                 for (const s of servicios.procedimientos  || []) addSrv(String(s.codProcedimiento  || ''), String(s.fechaInicioAtencion || ''));
                 for (const s of servicios.consultas        || []) addSrv(String(s.codConsulta        || s.codProcedimiento || ''), String(s.fechaInicioAtencion || s.fechaConsulta || ''));
-                for (const s of servicios.urgencias        || []) addSrv(String(s.codProcedimiento   || s.codConsulta      || ''), String(s.fechaInicioAtencion || ''));
+                for (const s of servicios.urgencias || []) {
+                  const cupsUrg = String(s.codProcedimiento || s.codConsulta || '').trim().toUpperCase();
+                  const fechaUrg = String(s.fechaInicioAtencion || '').split(' ')[0].split('T')[0];
+                  const tipoUrg = cupsUrg ? (getTipo(cupsUrg) || 'URGENCIAS BC') : 'URGENCIAS BC';
+                  const cupsGuard = cupsUrg || 'URGBC';
+                  newRegistros.push({ cups: cupsGuard, paciente: id, tipo: tipoUrg, nombre: cupsUrg ? getNombre(cupsUrg) : 'Urgencias Baja Complejidad', fecha: fechaUrg });
+                }
                 for (const s of servicios.otrosServicios   || []) addSrv(String(s.codOtroServicio    || s.codProcedimiento || ''), String(s.fechaInicioAtencion || ''));
-                for (const s of servicios.hospitalizacion  || []) addSrv(String(s.codProcedimiento   || ''),                       String(s.fechaInicioAtencion || s.fechaIngreso  || ''));
+                for (const s of servicios.hospitalizacion  || []) {
+                  const cupsHosp = String(s.codProcedimiento || '').trim().toUpperCase();
+                  const fechaHosp = String(s.fechaInicioAtencion || s.fechaIngreso || '').split(' ')[0].split('T')[0];
+                  const tipoHosp = cupsHosp ? (getTipo(cupsHosp) || 'HOSP BAJA COMPLEJIDAD') : 'HOSP BAJA COMPLEJIDAD';
+                  const cupsGuardH = cupsHosp || 'HOSPBC';
+                  newRegistros.push({ cups: cupsGuardH, paciente: id, tipo: tipoHosp, nombre: cupsHosp ? getNombre(cupsHosp) : 'Hospitalización Baja Complejidad', fecha: fechaHosp });
+                }
                 // Medicamentos: sum by cantidad (each unit = 1 record)
                 for (const s of servicios.medicamentos || []) {
                   const fecha = String(s.fechaDispensacion || s.fechaInicioAtencion || '').split('T')[0];
