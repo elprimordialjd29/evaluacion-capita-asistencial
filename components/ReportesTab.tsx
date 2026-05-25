@@ -94,12 +94,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 export default function ReportesTab({ actas, prestadores }: Props) {
-  type RT = 'consolidado' | 'ranking' | 'prestador' | 'periodo';
+  type RT = 'consolidado' | 'ranking' | 'prestador' | 'periodo' | 'especialidades';
   const [tab, setTab] = useState<RT>('consolidado');
 
   const [fPrest, setFPrest]     = useState('');
   const [fPeriodo, setFPeriodo] = useState('');
   const [fReg, setFReg]         = useState('');
+
+  // Especialidades Básicas filters
+  const [espPeriodo, setEspPeriodo] = useState('');
+  const [espReg, setEspReg]         = useState('');
+  const [espView, setEspView]       = useState<'prestador'|'municipio'|'departamento'>('prestador');
 
   const [selPrest, setSelPrest]     = useState('');
   const [prestSearch, setPrestSearch] = useState('');
@@ -240,6 +245,92 @@ export default function ReportesTab({ actas, prestadores }: Props) {
     writeFile(wb, `Reporte_Periodo_${selPeriodo.replace(/\s+/g,'_')}.xlsx`);
   };
 
+  // ── 5. ESPECIALIDADES BÁSICAS ─────────────────────────────────────────
+  const ESPECIALIDADES = [
+    { key: 'GINECOLOGÍA',      match: (t: string) => /GINEC/i.test(t) },
+    { key: 'PEDIATRÍA',        match: (t: string) => /PEDIAT/i.test(t) },
+    { key: 'MEDICINA INTERNA', match: (t: string) => /MEDICINA INTERNA|MED\.?\s*INTERNA/i.test(t) },
+    { key: 'NUTRICIÓN',        match: (t: string) => /NUTRI/i.test(t) },
+    { key: 'PSICOLOGÍA',       match: (t: string) => /PSICOL/i.test(t) },
+  ];
+
+  type EspRow = { key: string; nombre: string; municipio: string; departamento: string; regimen: string; contrato: string; esp: Record<string, { prog: number; ejec: number }> };
+
+  const espData = useMemo(() => {
+    const filtered = actas.filter(a =>
+      (!espPeriodo || a.periodoEvaluado === espPeriodo) &&
+      (!espReg || (a.regimen||'SUBSIDIADO').toUpperCase() === espReg)
+    );
+
+    // Aggregate by prestadorId
+    const byPrest = new Map<string, EspRow>();
+    filtered.forEach(a => {
+      const p = prestadores.find(x => x.id === a.prestadorId);
+      if (!byPrest.has(a.prestadorId)) {
+        byPrest.set(a.prestadorId, {
+          key: a.prestadorId, nombre: a.empresa, municipio: a.municipio || p?.municipio || '',
+          departamento: a.departamento || p?.departamento || '', regimen: a.regimen || 'SUBSIDIADO',
+          contrato: a.contrato, esp: Object.fromEntries(ESPECIALIDADES.map(e => [e.key, { prog: 0, ejec: 0 }])),
+        });
+      }
+      const row = byPrest.get(a.prestadorId)!;
+      a.servicios.forEach(s => {
+        const esp = ESPECIALIDADES.find(e => e.match(s.tipo));
+        if (esp) {
+          row.esp[esp.key].prog += s.programado;
+          row.esp[esp.key].ejec += Math.min(s.ejecutado, s.programado);
+        }
+      });
+    });
+
+    // Aggregate by municipio
+    const byMun = new Map<string, EspRow>();
+    [...byPrest.values()].forEach(row => {
+      const k = row.municipio || '(Sin municipio)';
+      if (!byMun.has(k)) byMun.set(k, { key: k, nombre: k, municipio: k, departamento: row.departamento, regimen: '', contrato: '', esp: Object.fromEntries(ESPECIALIDADES.map(e => [e.key, { prog: 0, ejec: 0 }])) });
+      const m = byMun.get(k)!;
+      ESPECIALIDADES.forEach(e => { m.esp[e.key].prog += row.esp[e.key].prog; m.esp[e.key].ejec += row.esp[e.key].ejec; });
+    });
+
+    // Aggregate by departamento
+    const byDep = new Map<string, EspRow>();
+    [...byPrest.values()].forEach(row => {
+      const k = row.departamento || '(Sin departamento)';
+      if (!byDep.has(k)) byDep.set(k, { key: k, nombre: k, municipio: '', departamento: k, regimen: '', contrato: '', esp: Object.fromEntries(ESPECIALIDADES.map(e => [e.key, { prog: 0, ejec: 0 }])) });
+      const d = byDep.get(k)!;
+      ESPECIALIDADES.forEach(e => { d.esp[e.key].prog += row.esp[e.key].prog; d.esp[e.key].ejec += row.esp[e.key].ejec; });
+    });
+
+    return {
+      prestador: [...byPrest.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      municipio: [...byMun.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      departamento: [...byDep.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    };
+  }, [actas, prestadores, espPeriodo, espReg]);
+
+  const espPct = (row: EspRow, key: string) => {
+    const { prog, ejec } = row.esp[key];
+    return prog > 0 ? Math.min(Math.round(ejec / prog * 100), 100) : null;
+  };
+
+  const exportEspXlsx = () => {
+    const rows = espData[espView].map(row => {
+      const r: Record<string, string|number> = { 'Nombre': row.nombre };
+      if (espView === 'prestador') { r['Contrato'] = row.contrato; r['Municipio'] = row.municipio; r['Departamento'] = row.departamento; r['Régimen'] = row.regimen; }
+      if (espView === 'municipio') r['Departamento'] = row.departamento;
+      ESPECIALIDADES.forEach(e => {
+        const p = espPct(row, e.key);
+        r[`${e.key} Prog.`] = row.esp[e.key].prog;
+        r[`${e.key} Ejec.`] = row.esp[e.key].ejec;
+        r[`${e.key} %`] = p !== null ? p : 'N/A';
+      });
+      return r;
+    });
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, utils.json_to_sheet(rows), 'Especialidades Básicas');
+    writeFile(wb, `Especialidades_Basicas_${espView}.xlsx`);
+  };
+
   // ── Summary stats ──────────────────────────────────────────────────────
   const stats = useMemo(() => {
     if (!actas.length) return null;
@@ -252,10 +343,11 @@ export default function ReportesTab({ actas, prestadores }: Props) {
 
   // ── Tab buttons ────────────────────────────────────────────────────────
   const tabs: { key: RT; label: string; icon: React.ReactNode }[] = [
-    { key: 'consolidado', label: 'Consolidado',    icon: <ClipboardList className="h-4 w-4" /> },
-    { key: 'ranking',     label: 'Ranking',        icon: <TrendingUp className="h-4 w-4" /> },
-    { key: 'prestador',   label: 'Por Prestador',  icon: <Building2 className="h-4 w-4" /> },
-    { key: 'periodo',     label: 'Por Período',    icon: <Calendar className="h-4 w-4" /> },
+    { key: 'consolidado',    label: 'Consolidado',          icon: <ClipboardList className="h-4 w-4" /> },
+    { key: 'ranking',        label: 'Ranking',              icon: <TrendingUp className="h-4 w-4" /> },
+    { key: 'prestador',      label: 'Por Prestador',        icon: <Building2 className="h-4 w-4" /> },
+    { key: 'periodo',        label: 'Por Período',          icon: <Calendar className="h-4 w-4" /> },
+    { key: 'especialidades', label: 'Especialidades Básicas', icon: <FileText className="h-4 w-4" /> },
   ];
 
   const inputCls = 'w-full px-3 py-1.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500';
@@ -678,6 +770,175 @@ export default function ReportesTab({ actas, prestadores }: Props) {
           )}
         </div>
       )}
+
+      {/* ══ 5. ESPECIALIDADES BÁSICAS ══════════════════════════════════════ */}
+      {tab === 'especialidades' && (() => {
+        const rows = espData[espView];
+        const hasSomeData = rows.some(r => ESPECIALIDADES.some(e => r.esp[e.key].prog > 0));
+        return (
+          <div className="space-y-4">
+            {/* Filters */}
+            <div className="glass-panel rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Período</label>
+                <select value={espPeriodo} onChange={e => setEspPeriodo(e.target.value)} className={inputCls}>
+                  <option value="">— Todos —</option>
+                  {allPeriodos.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Régimen</label>
+                <select value={espReg} onChange={e => setEspReg(e.target.value)} className={inputCls}>
+                  <option value="">— Todos —</option>
+                  {allRegimenes.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Agrupar por</label>
+                <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-9">
+                  {(['prestador', 'municipio', 'departamento'] as const).map(v => (
+                    <button key={v} onClick={() => setEspView(v)}
+                      className={`flex-1 text-xs font-medium transition-colors ${espView === v ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                      {v === 'prestador' ? 'Prestador' : v === 'municipio' ? 'Municipio' : 'Dpto.'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-500">{rows.length} {espView}{rows.length !== 1 ? 'es' : ''}</span>
+              <div className="flex gap-2">
+                <button onClick={exportEspXlsx} disabled={!hasSomeData} className={btnXls}><Download className="h-3.5 w-3.5" /> Excel</button>
+                <button onClick={() => printArea('rpt-especialidades', 'Especialidades Básicas')} disabled={!hasSomeData} className={btnPdf}><Printer className="h-3.5 w-3.5" /> PDF</button>
+              </div>
+            </div>
+
+            {!hasSomeData ? (
+              <div className="glass-panel rounded-2xl p-12 flex flex-col items-center gap-3 text-center border-2 border-dashed border-slate-300 dark:border-slate-700">
+                <FileText className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+                <p className="text-slate-500 font-medium">No hay datos de especialidades básicas en las actas.</p>
+                <p className="text-sm text-slate-400">Asegúrate de que los servicios incluyan Ginecología, Pediatría, Medicina Interna, Nutrición o Psicología.</p>
+              </div>
+            ) : (
+              <>
+                {/* Gráfica global por especialidad */}
+                <div className="glass-panel rounded-2xl p-5">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-4">% Cumplimiento Global por Especialidad (ejecutado/programado)</p>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart
+                      data={ESPECIALIDADES.map(e => {
+                        const totalProg = rows.reduce((s, r) => s + r.esp[e.key].prog, 0);
+                        const totalEjec = rows.reduce((s, r) => s + r.esp[e.key].ejec, 0);
+                        return { esp: e.key.split(' ')[0], pct: totalProg > 0 ? Math.min(Math.round(totalEjec / totalProg * 100), 100) : 0 };
+                      })}
+                      margin={{ top: 24, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="esp" tick={{ fontSize: 11, fill: '#64748b' }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="pct" radius={[6,6,0,0]} isAnimationActive={false}
+                        label={{ position: 'top', fontSize: 11, fontWeight: 'bold', formatter: (v: number) => `${v}%` }}>
+                        {ESPECIALIDADES.map((e, i) => {
+                          const totalProg = rows.reduce((s, r) => s + r.esp[e.key].prog, 0);
+                          const totalEjec = rows.reduce((s, r) => s + r.esp[e.key].ejec, 0);
+                          const p = totalProg > 0 ? Math.min(Math.round(totalEjec / totalProg * 100), 100) : 0;
+                          return <Cell key={i} fill={barColor(p)} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex gap-4 justify-center mt-3 flex-wrap">
+                    {[['#10b981','100%'],['#f59e0b','80–99%'],['#f97316','50–79%'],['#ef4444','< 50%']].map(([color, label]) => (
+                      <div key={label} className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabla detallada */}
+                <div id="rpt-especialidades" className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800 text-[11px] uppercase text-slate-500">
+                        <th className="px-3 py-3 text-left">
+                          {espView === 'prestador' ? 'Prestador' : espView === 'municipio' ? 'Municipio' : 'Departamento'}
+                        </th>
+                        {espView === 'prestador' && <th className="px-3 py-3 text-left">Dpto / Municipio</th>}
+                        {espView === 'municipio'  && <th className="px-3 py-3 text-left">Departamento</th>}
+                        {ESPECIALIDADES.map(e => (
+                          <th key={e.key} className="px-3 py-3 text-center min-w-[130px]">{e.key}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {rows.map(row => (
+                        <tr key={row.key} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-3 py-2.5">
+                            <p className="font-semibold text-slate-800 dark:text-slate-100 text-xs leading-tight">{row.nombre}</p>
+                            {espView === 'prestador' && <p className="text-[10px] font-mono text-slate-400">{row.contrato}</p>}
+                            {espView === 'prestador' && (
+                              <span className={`text-[10px] font-bold ${row.regimen === 'CONTRIBUTIVO' ? 'text-orange-500' : 'text-emerald-600'}`}>{row.regimen}</span>
+                            )}
+                          </td>
+                          {espView === 'prestador' && (
+                            <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                              {[row.departamento, row.municipio].filter(Boolean).join(' / ')}
+                            </td>
+                          )}
+                          {espView === 'municipio' && (
+                            <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">{row.departamento}</td>
+                          )}
+                          {ESPECIALIDADES.map(e => {
+                            const p = espPct(row, e.key);
+                            const { prog, ejec } = row.esp[e.key];
+                            return (
+                              <td key={e.key} className="px-3 py-2.5 text-center">
+                                {p !== null ? (
+                                  <div className="space-y-1">
+                                    <ProgressBar value={p} />
+                                    <div className="text-[9px] text-slate-400 text-center">{ejec} / {prog}</div>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                      {/* Fila de totales */}
+                      <tr className="bg-slate-100 dark:bg-slate-800 font-bold">
+                        <td className="px-3 py-2.5 text-xs text-slate-700 dark:text-slate-200"
+                          colSpan={espView === 'departamento' ? 1 : 2}>
+                          TOTAL GENERAL
+                        </td>
+                        {ESPECIALIDADES.map(e => {
+                          const totalProg = rows.reduce((s, r) => s + r.esp[e.key].prog, 0);
+                          const totalEjec = rows.reduce((s, r) => s + r.esp[e.key].ejec, 0);
+                          const p = totalProg > 0 ? Math.min(Math.round(totalEjec / totalProg * 100), 100) : null;
+                          return (
+                            <td key={e.key} className="px-3 py-2.5 text-center">
+                              {p !== null ? (
+                                <div className="space-y-1">
+                                  <ProgressBar value={p} />
+                                  <div className="text-[9px] text-slate-500">{totalEjec} / {totalProg}</div>
+                                </div>
+                              ) : <span className="text-slate-300 text-xs">—</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
