@@ -16,7 +16,7 @@ import {
 import {
   ServiceTypeMeta, RipsRecord, UserRecord, MaestroCupItem,
   ProcessingStats, ChartDataPoint, RankingCupsItem, RankingPatientItem, DuplicateItem,
-  Prestador, CustomCupsEntry, Acta, ActaServicio, AppUser
+  Prestador, CustomCupsEntry, Acta, ActaServicio, AppUser, Renuncia
 } from './types';
 import { StorageService } from './services/storageService';
 import { CloudStorage } from './services/supabaseClient';
@@ -36,6 +36,7 @@ const ALL_PERMISSIONS = [
   { key: 'prestadores',   label: 'Gestión de Prestadores', desc: 'Crear, editar y consultar prestadores',    icon: '🏥' },
   { key: 'actas',         label: 'Actas de Evaluación',    desc: 'Generar y gestionar actas',                icon: '📋' },
   { key: 'reportes',      label: 'Reportes',               desc: 'Ver y exportar reportes en Excel y PDF',   icon: '📈' },
+  { key: 'renuncias',     label: 'Renuncias',               desc: 'Registrar y gestionar renuncias de afiliados', icon: '📝' },
   { key: 'mantenimiento', label: 'Mantenimiento',          desc: 'CUPS personalizados y tipos de servicio',  icon: '⚙️' },
   { key: 'usuarios',      label: 'Gestión de Usuarios',    desc: 'Crear y editar usuarios del sistema',      icon: '👥' },
 ];
@@ -168,7 +169,7 @@ function App() {
   const [jsonFileNames, setJsonFileNames] = useState<string[]>([]);
 
   // Tab Navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas' | 'reportes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas' | 'reportes' | 'renuncias'>('dashboard');
   const [maintTab, setMaintTab] = useState<'prestadores' | 'cups' | 'servicios' | 'usuarios' | 'monitor'>('prestadores');
 
   // Mantenimiento – Prestadores  (lazy init from localStorage — avoids save-before-load race)
@@ -204,6 +205,25 @@ function App() {
   const [filterRegimen, setFilterRegimen] = useState('');
   const [prestSearch, setPrestSearch] = useState('');
   const [showPrestDropdown, setShowPrestDropdown] = useState(false);
+
+  // Renuncias
+  const [renuncias, setRenuncias] = useState<Renuncia[]>(() => {
+    try { const s = localStorage.getItem('renuncias'); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [showRenunciaForm, setShowRenunciaForm] = useState(false);
+  const [editingRenuncia, setEditingRenuncia] = useState<Renuncia | null>(null);
+  const [renunciaSearch, setRenunciaSearch] = useState('');
+  const [renunciaFiltroEstado, setRenunciaFiltroEstado] = useState('');
+  const [renunciaFiltroMotivo, setRenunciaFiltroMotivo] = useState('');
+  const [renunciaFiltroPrestador, setRenunciaFiltroPrestador] = useState('');
+  const RENUNCIA_BLANK: Omit<Renuncia, 'id' | 'createdAt'> = {
+    prestadorId: '', nit: '', contrato: '', regimen: 'SUBSIDIADO',
+    periodoEvaluado: '', fechaRegistro: new Date().toISOString().split('T')[0],
+    numeroCaso: '', documentoPaciente: '', nombrePaciente: '',
+    tipoServicio: '', motivoRenuncia: 'VOLUNTARIA', observaciones: '',
+    estadoGestion: 'PENDIENTE', responsable: '',
+  };
+  const [renunciaForm, setRenunciaForm] = useState<Omit<Renuncia, 'id' | 'createdAt'>>(RENUNCIA_BLANK);
 
   // Monitor de recursos
   const [monitorStats, setMonitorStats] = useState<{
@@ -421,6 +441,11 @@ function App() {
     localStorage.setItem('actas', JSON.stringify(actas));
     if (cloudInitialized.current) CloudStorage.set('actas', actas);
   }, [actas]);
+
+  // Save renuncias
+  useEffect(() => {
+    localStorage.setItem('renuncias', JSON.stringify(renuncias));
+  }, [renuncias]);
 
   // --- Handlers ---
 
@@ -1661,6 +1686,14 @@ function App() {
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'reportes' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
             <FileText className="h-4 w-4" /> Reportes
+          </button>
+          )}
+          {hasPerm('renuncias') && (
+          <button
+            onClick={() => setActiveTab('renuncias')}
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'renuncias' ? 'border-rose-600 text-rose-600 dark:border-rose-400 dark:text-rose-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            <ClipboardList className="h-4 w-4" /> Renuncias
           </button>
           )}
         </div>
@@ -3718,6 +3751,289 @@ function App() {
           <ReportesTab actas={actas} prestadores={prestadores} />
         </div>
       )}
+
+      {/* ===== RENUNCIAS TAB ===== */}
+      {activeTab === 'renuncias' && (() => {
+        const MOTIVOS = ['VOLUNTARIA', 'NO ASISTIÓ', 'TRASLADO', 'FALLECIMIENTO', 'OTRO'];
+        const ESTADOS = ['PENDIENTE', 'EN GESTIÓN', 'CERRADA'];
+        const estadoColor = (e: string) => e === 'CERRADA' ? 'bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400' : e === 'EN GESTIÓN' ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
+        const motivoColor = (m: string) => m === 'VOLUNTARIA' ? 'bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400' : m === 'FALLECIMIENTO' ? 'bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400' : m === 'TRASLADO' ? 'bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
+
+        const filtradas = renuncias.filter(r => {
+          const q = renunciaSearch.toLowerCase();
+          const matchQ = !q || r.documentoPaciente.toLowerCase().includes(q) || r.nombrePaciente.toLowerCase().includes(q) || r.numeroCaso.toLowerCase().includes(q) || r.contrato.toLowerCase().includes(q);
+          const matchEstado = !renunciaFiltroEstado || r.estadoGestion === renunciaFiltroEstado;
+          const matchMotivo = !renunciaFiltroMotivo || r.motivoRenuncia === renunciaFiltroMotivo;
+          const matchPrest = !renunciaFiltroPrestador || r.prestadorId === renunciaFiltroPrestador || r.contrato === renunciaFiltroPrestador;
+          return matchQ && matchEstado && matchMotivo && matchPrest;
+        });
+
+        const stats = {
+          total: renuncias.length,
+          pendientes: renuncias.filter(r => r.estadoGestion === 'PENDIENTE').length,
+          enGestion: renuncias.filter(r => r.estadoGestion === 'EN GESTIÓN').length,
+          cerradas: renuncias.filter(r => r.estadoGestion === 'CERRADA').length,
+        };
+
+        const handleSaveRenuncia = () => {
+          if (!renunciaForm.documentoPaciente || !renunciaForm.tipoServicio || !renunciaForm.periodoEvaluado) {
+            setMessage({ type: 'error', text: 'Completa los campos obligatorios: Documento, Tipo de Servicio y Período.' });
+            return;
+          }
+          if (editingRenuncia) {
+            setRenuncias(prev => prev.map(r => r.id === editingRenuncia.id ? { ...editingRenuncia, ...renunciaForm } : r));
+          } else {
+            const nueva: Renuncia = { ...renunciaForm, id: Date.now().toString(), createdAt: new Date().toISOString() };
+            setRenuncias(prev => [nueva, ...prev]);
+          }
+          setShowRenunciaForm(false);
+          setEditingRenuncia(null);
+          setRenunciaForm(RENUNCIA_BLANK);
+        };
+
+        return (
+          <div className="animate-in fade-in duration-300 space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <ClipboardList className="h-6 w-6 text-rose-500" /> Renuncias de Afiliados
+              </h2>
+              <button
+                onClick={() => { setRenunciaForm(RENUNCIA_BLANK); setEditingRenuncia(null); setShowRenunciaForm(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-md"
+              >
+                <Plus className="h-4 w-4" /> Nueva Renuncia
+              </button>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Registradas', value: stats.total, color: 'text-slate-700 dark:text-slate-200', bg: 'bg-slate-100 dark:bg-slate-800' },
+                { label: 'Pendientes', value: stats.pendientes, color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-50 dark:bg-slate-800/60' },
+                { label: 'En Gestión', value: stats.enGestion, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+                { label: 'Cerradas', value: stats.cerradas, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-500/10' },
+              ].map(k => (
+                <div key={k.label} className={`${k.bg} rounded-2xl p-4 border border-slate-200 dark:border-slate-700/50`}>
+                  <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">{k.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input type="text" placeholder="Buscar por doc., nombre, caso, contrato..." value={renunciaSearch} onChange={e => setRenunciaSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+              </div>
+              <select value={renunciaFiltroEstado} onChange={e => setRenunciaFiltroEstado(e.target.value)}
+                className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                <option value="">Todos los estados</option>
+                {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+              </select>
+              <select value={renunciaFiltroMotivo} onChange={e => setRenunciaFiltroMotivo(e.target.value)}
+                className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                <option value="">Todos los motivos</option>
+                {MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select value={renunciaFiltroPrestador} onChange={e => setRenunciaFiltroPrestador(e.target.value)}
+                className="px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                <option value="">Todos los prestadores</option>
+                {prestadores.map(p => <option key={p.id} value={p.id}>{p.nombre} — {p.contrato}</option>)}
+              </select>
+            </div>
+
+            {/* Form Modal */}
+            {showRenunciaForm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scroll">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">{editingRenuncia ? 'Editar Renuncia' : 'Registrar Nueva Renuncia'}</h3>
+                    <button onClick={() => { setShowRenunciaForm(false); setEditingRenuncia(null); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold">×</button>
+                  </div>
+                  <div className="p-6 space-y-5">
+                    {/* Prestador */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Prestador / Contrato <span className="text-rose-500">*</span></label>
+                      <select value={renunciaForm.prestadorId} onChange={e => {
+                        const p = prestadores.find(x => x.id === e.target.value);
+                        setRenunciaForm(f => ({ ...f, prestadorId: e.target.value, nit: p?.nit || '', contrato: p?.contrato || '', regimen: p?.regimen || 'SUBSIDIADO' }));
+                      }} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                        <option value="">— Seleccionar prestador —</option>
+                        {prestadores.map(p => <option key={p.id} value={p.id}>{p.nombre} — {p.contrato} ({p.regimen})</option>)}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Periodo */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Período Evaluado <span className="text-rose-500">*</span></label>
+                        <input type="text" placeholder="ej. Enero 2025" value={renunciaForm.periodoEvaluado} onChange={e => setRenunciaForm(f => ({ ...f, periodoEvaluado: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+                      </div>
+                      {/* Fecha Registro */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha de Registro</label>
+                        <input type="date" value={renunciaForm.fechaRegistro} onChange={e => setRenunciaForm(f => ({ ...f, fechaRegistro: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+                      </div>
+                      {/* Número Caso */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Número de Caso / Radicado</label>
+                        <input type="text" placeholder="ej. REN-2025-001" value={renunciaForm.numeroCaso} onChange={e => setRenunciaForm(f => ({ ...f, numeroCaso: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+                      </div>
+                      {/* Documento Paciente */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Documento del Afiliado <span className="text-rose-500">*</span></label>
+                        <input type="text" placeholder="Cédula / TI / RC" value={renunciaForm.documentoPaciente} onChange={e => setRenunciaForm(f => ({ ...f, documentoPaciente: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+                      </div>
+                    </div>
+
+                    {/* Nombre paciente */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nombre del Afiliado</label>
+                      <input type="text" placeholder="Nombres y apellidos" value={renunciaForm.nombrePaciente} onChange={e => setRenunciaForm(f => ({ ...f, nombrePaciente: e.target.value }))}
+                        className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Tipo Servicio */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tipo de Servicio <span className="text-rose-500">*</span></label>
+                        <select value={renunciaForm.tipoServicio} onChange={e => setRenunciaForm(f => ({ ...f, tipoServicio: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                          <option value="">— Seleccionar —</option>
+                          {metas.map(m => <option key={m.type} value={m.type}>{m.type}</option>)}
+                        </select>
+                      </div>
+                      {/* Motivo */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Motivo de Renuncia</label>
+                        <select value={renunciaForm.motivoRenuncia} onChange={e => setRenunciaForm(f => ({ ...f, motivoRenuncia: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                          {MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      {/* Estado Gestión */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado de Gestión</label>
+                        <select value={renunciaForm.estadoGestion} onChange={e => setRenunciaForm(f => ({ ...f, estadoGestion: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+                          {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+                        </select>
+                      </div>
+                      {/* Responsable */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Responsable / Funcionario</label>
+                        <input type="text" placeholder="Nombre del funcionario" value={renunciaForm.responsable} onChange={e => setRenunciaForm(f => ({ ...f, responsable: e.target.value }))}
+                          className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+                      </div>
+                    </div>
+
+                    {/* Observaciones */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Observaciones</label>
+                      <textarea rows={3} placeholder="Detalles adicionales de la renuncia..." value={renunciaForm.observaciones} onChange={e => setRenunciaForm(f => ({ ...f, observaciones: e.target.value }))}
+                        className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/30 resize-none" />
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => { setShowRenunciaForm(false); setEditingRenuncia(null); }} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        Cancelar
+                      </button>
+                      <button onClick={handleSaveRenuncia} className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">
+                        {editingRenuncia ? 'Actualizar' : 'Guardar Renuncia'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Table */}
+            {filtradas.length === 0 ? (
+              <div className="glass-panel rounded-2xl p-16 flex flex-col items-center gap-4 text-center border-2 border-dashed border-slate-300 dark:border-slate-700">
+                <ClipboardList className="h-12 w-12 text-slate-300 dark:text-slate-700" />
+                <div>
+                  <p className="font-bold text-slate-500 dark:text-slate-400">No hay renuncias registradas</p>
+                  <p className="text-sm text-slate-400 mt-1">Usa el botón "Nueva Renuncia" para registrar la primera</p>
+                </div>
+              </div>
+            ) : (
+              <div className="glass-panel rounded-2xl overflow-hidden shadow-lg">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Caso / Período</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Afiliado</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Prestador</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Servicio</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Motivo</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Responsable</th>
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {filtradas.map(r => {
+                        const prest = prestadores.find(p => p.id === r.prestadorId);
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">{r.numeroCaso || '—'}</div>
+                              <div className="text-[11px] text-slate-400 mt-0.5">{r.periodoEvaluado}</div>
+                              <div className="text-[10px] text-slate-400">{r.fechaRegistro}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-800 dark:text-slate-100 text-xs">{r.nombrePaciente || '—'}</div>
+                              <div className="text-[11px] font-mono text-slate-400">{r.documentoPaciente}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-xs text-slate-700 dark:text-slate-200 font-medium leading-tight">{prest?.nombre || r.nit}</div>
+                              <div className="text-[10px] font-mono text-slate-400">{r.contrato}</div>
+                              <span className={`text-[10px] font-bold ${r.regimen === 'CONTRIBUTIVO' ? 'text-orange-500' : 'text-emerald-500'}`}>{r.regimen}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-slate-600 dark:text-slate-300">{r.tipoServicio}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${motivoColor(r.motivoRenuncia)}`}>{r.motivoRenuncia}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${estadoColor(r.estadoGestion)}`}>{r.estadoGestion}</span>
+                            </td>
+                            <td className="px-4 py-3 text-[11px] text-slate-500 dark:text-slate-400">{r.responsable || '—'}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex gap-1">
+                                <button onClick={() => { setEditingRenuncia(r); setRenunciaForm({ prestadorId: r.prestadorId, nit: r.nit, contrato: r.contrato, regimen: r.regimen, periodoEvaluado: r.periodoEvaluado, fechaRegistro: r.fechaRegistro, numeroCaso: r.numeroCaso, documentoPaciente: r.documentoPaciente, nombrePaciente: r.nombrePaciente, tipoServicio: r.tipoServicio, motivoRenuncia: r.motivoRenuncia, observaciones: r.observaciones, estadoGestion: r.estadoGestion, responsable: r.responsable }); setShowRenunciaForm(true); }}
+                                  className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => { if (confirm('¿Eliminar esta renuncia?')) setRenuncias(prev => prev.filter(x => x.id !== r.id)); }}
+                                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-colors">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-400">
+                  {filtradas.length} de {renuncias.length} registro{renuncias.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
     </div>
   );

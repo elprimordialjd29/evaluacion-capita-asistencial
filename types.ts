@@ -114,6 +114,25 @@ export interface ActaServicio {
   ejecutado: number;
 }
 
+export interface Renuncia {
+  id: string;
+  prestadorId: string;
+  nit: string;
+  contrato: string;
+  regimen: string;
+  periodoEvaluado: string;       // "Enero 2025", "Febrero 2025", etc.
+  fechaRegistro: string;         // ISO date del registro
+  numeroCaso: string;            // Número interno de radicado
+  documentoPaciente: string;     // Cédula / TI / RC del paciente
+  nombrePaciente: string;
+  tipoServicio: string;          // Tipo de servicio al que renuncia (CONSULTA MÉDICA, etc.)
+  motivoRenuncia: string;        // VOLUNTARIA | NO ASISTIÓ | TRASLADO | FALLECIMIENTO | OTRO
+  observaciones: string;
+  estadoGestion: string;         // PENDIENTE | EN GESTIÓN | CERRADA
+  responsable: string;           // Funcionario que registra
+  createdAt: string;
+}
+
 export interface Acta {
   id: string;
   numero: string;
