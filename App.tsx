@@ -1773,13 +1773,13 @@ function App() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[280px] overflow-y-auto custom-scroll pr-1">
+              <div className="space-y-2 max-h-[480px] overflow-y-auto custom-scroll pr-1">
                 {prestadores.filter(p => {
                   if (!searchPrestador.trim()) return true;
                   const q = searchPrestador.toLowerCase();
                   return p.nombre.toLowerCase().includes(q) || p.contrato.toLowerCase().includes(q);
                 }).map(p => {
-                  const pActas = actas.filter(a => a.prestadorId === p.id);
+                  const pActas = actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato));
                   const isSelected = selectedDashPrestador === p.id;
                   return (
                     <div key={p.id}
@@ -2650,10 +2650,10 @@ function App() {
                           </span>
                         </div>
                         {/* Actas for this prestador */}
-                        {actas.filter(a => a.prestadorId === p.id).length > 0 && (
+                        {actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).length > 0 && (
                           <div className="pt-2 space-y-1">
                             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Actas</p>
-                            {actas.filter(a => a.prestadorId === p.id).map(acta => (
+                            {actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).map(acta => (
                               <div key={acta.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg px-2 py-1 text-xs">
                                 <span className="font-mono text-indigo-600 dark:text-indigo-400 font-medium">{acta.numero}</span>
                                 <span className="text-slate-400 text-[10px] truncate mx-2">{acta.periodoEvaluado}</span>
