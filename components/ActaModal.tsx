@@ -14,6 +14,10 @@ export const pct = (srv: ActaServicio): number => {
   return Math.min(Math.round((srv.ejecutado / srv.programado) * 100), 100);
 };
 
+// Ejecutado topado en la meta (no puede superar programado)
+export const ejec = (srv: ActaServicio): number =>
+  Math.min(srv.ejecutado, srv.programado);
+
 const pctColor = (p: number) =>
   p >= 100 ? '#2dd4bf' : p >= 80 ? '#ca8a04' : '#dc2626';
 
@@ -64,7 +68,7 @@ function XBarTick({ x, y, payload }: any) {
 
 export function ActaPreview({ acta }: { acta: Acta }) {
   const totalProg  = acta.servicios.reduce((s, x) => s + x.programado, 0);
-  const totalEjec  = acta.servicios.reduce((s, x) => s + x.ejecutado,  0);
+  const totalEjec  = acta.servicios.reduce((s, x) => s + ejec(x), 0);
   const totalCumpl = totalProg > 0 ? Math.min(Math.round((totalEjec / totalProg) * 100), 100) : 0;
 
   const chartData = acta.servicios.map(srv => ({
@@ -230,7 +234,7 @@ export function ActaPreview({ acta }: { acta: Acta }) {
                   <tr key={i} className={i % 2 === 0 ? '' : 'bg-gray-50'}>
                     <td className={td + ' border-l-0'}>{srv.tipo}</td>
                     <td className={td + ' text-right'}>{srv.programado.toLocaleString()}</td>
-                    <td className={td + ' text-right'}>{srv.ejecutado.toLocaleString()}</td>
+                    <td className={td + ' text-right'}>{ejec(srv).toLocaleString()}</td>
                     <td className={td + ' border-r-0 text-right font-bold'} style={{ color: '#000000' }}>{p}%</td>
                   </tr>
                 );
@@ -352,7 +356,7 @@ export default function ActaModal({
   };
 
   const totalProg  = acta.servicios.reduce((s, x) => s + x.programado, 0);
-  const totalEjec  = acta.servicios.reduce((s, x) => s + x.ejecutado,  0);
+  const totalEjec  = acta.servicios.reduce((s, x) => s + ejec(x), 0);
   const totalCumpl = totalProg > 0 ? Math.min(Math.round((totalEjec / totalProg) * 100), 100) : 0;
 
   // ── Excel Export ──
@@ -380,7 +384,7 @@ export default function ActaModal({
       ['TOTAL PROGRAMADO', totalProg, 'TOTAL EJECUTADO', totalEjec, '% CUMPLIMIENTO', totalCumpl / 100],
       [],
       ['PROGRAMA / TIPO DE SERVICIO', 'CANTIDAD PROGRAMADA', 'CANTIDAD EJECUTADA', '% CUMPLIMIENTO'],
-      ...acta.servicios.map(s => [s.tipo, s.programado, s.ejecutado, pct(s) / 100]),
+      ...acta.servicios.map(s => [s.tipo, s.programado, ejec(s), pct(s) / 100]),
       [],
       ['OBSERVACIONES:'],
       [acta.observaciones],
@@ -662,7 +666,7 @@ export default function ActaModal({
                             />
                           </td>
                           <td className="px-3 py-2 text-right font-mono text-slate-600 dark:text-slate-300">
-                            {srv.ejecutado.toLocaleString()}
+                            {ejec(srv).toLocaleString()}
                           </td>
                           <td className="px-3 py-2 text-right font-bold" style={{ color: pctColor(p) }}>{p}%</td>
                         </tr>
