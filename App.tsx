@@ -2602,91 +2602,135 @@ function App() {
                       <p className="text-sm text-slate-400 mt-1">Crea el primero o importa desde un archivo JSON</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {prestadores.map(p => (
-                      <div key={p.id} className="glass-panel rounded-2xl p-5 shadow-lg flex flex-col gap-3 group hover:shadow-xl transition-all">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold text-slate-800 dark:text-white leading-tight">{p.nombre}</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">NIT: {p.nit}</p>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleGenerarActa(p)}
-                              className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                              title="Generar Acta"
-                            >
-                              <ClipboardList className="h-4 w-4" />
-                            </button>
-                            {isAdmin && (<>
-                              <button
-                                onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', repLegalIPS: p.repLegalIPS || '', metas: mergedMetas }); setShowPrestForm(true); }}
-                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeletePrestador(p.id)}
-                                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-500 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </>)}
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400">
-                          {(p.departamento || p.municipio) && (
-                            <span>📍 {[p.departamento, p.municipio].filter(Boolean).join(', ')}</span>
-                          )}
-                          {p.contrato && <span>📋 Contrato: {p.contrato}</span>}
-                          {p.regimen && (
-                            <span className={`inline-flex items-center gap-1 font-semibold ${p.regimen === 'CONTRIBUTIVO' ? 'text-orange-500 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                              🏥 {p.regimen}
-                            </span>
-                          )}
-                          <span className="text-slate-400 dark:text-slate-500">
-                            {p.metas.filter(m => m.monthlyGoal > 0).length} servicios con meta
-                          </span>
-                        </div>
-                        {/* Actas for this prestador */}
-                        {actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).length > 0 && (
-                          <div className="pt-2 space-y-1">
-                            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Actas</p>
-                            {actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).map(acta => (
-                              <div key={acta.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg px-2 py-1 text-xs">
-                                <span className="font-mono text-indigo-600 dark:text-indigo-400 font-medium">{acta.numero}</span>
-                                <span className="text-slate-400 text-[10px] truncate mx-2">{acta.periodoEvaluado}</span>
-                                <div className="flex gap-1 flex-shrink-0">
-                                  <button onClick={() => handleEditActa(acta)} className="p-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Ver/Editar">
-                                    <Pencil className="h-3 w-3" />
-                                  </button>
-                                  <button onClick={() => handleDeleteActa(acta.id)} className="p-1 hover:text-red-500 transition-colors" title="Eliminar">
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
+                ) : (() => {
+                  // Group prestadores by NIT
+                  const groups: Record<string, Prestador[]> = {};
+                  prestadores.forEach(p => { (groups[p.nit] = groups[p.nit] || []).push(p); });
+                  return (
+                    <div className="space-y-4">
+                      {Object.entries(groups).map(([nit, grupo]) => {
+                        const rep = grupo[0];
+                        const totalActas = grupo.reduce((sum, p) =>
+                          sum + actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).length, 0);
+                        return (
+                          <div key={nit} className="glass-panel rounded-2xl shadow-lg overflow-hidden">
+                            {/* Group header */}
+                            <div className="flex items-start justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40">
+                              <div>
+                                <h3 className="font-bold text-slate-800 dark:text-white text-base leading-tight">{rep.nombre}</h3>
+                                <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  <span className="font-mono">NIT: {nit}</span>
+                                  {(rep.departamento || rep.municipio) && (
+                                    <span>📍 {[rep.departamento, rep.municipio].filter(Boolean).join(', ')}</span>
+                                  )}
                                 </div>
                               </div>
-                            ))}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${totalActas > 0 ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
+                                  {totalActas} acta{totalActas !== 1 ? 's' : ''}
+                                </span>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => { setPrestForm({ nombre: rep.nombre, nit: rep.nit, departamento: rep.departamento, municipio: rep.municipio, contrato: '', vigencia: '', regimen: 'SUBSIDIADO', metas: metas.map(m => ({ ...m })) }); setEditPrest(null); setShowPrestForm(true); }}
+                                    className="text-[11px] flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
+                                    title="Agregar contrato a este prestador"
+                                  >
+                                    <Plus className="h-3 w-3" /> Contrato
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Contracts table */}
+                            <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                              {grupo.map(p => {
+                                const pActas = actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato));
+                                return (
+                                  <div key={p.id} className="px-5 py-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                                    <div className="flex items-start justify-between gap-3">
+                                      {/* Contract info */}
+                                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                        {p.contrato && (
+                                          <span className="font-mono text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            📋 {p.contrato}
+                                          </span>
+                                        )}
+                                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${p.regimen === 'CONTRIBUTIVO' ? 'bg-orange-100 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'}`}>
+                                          {p.regimen || 'SUBSIDIADO'}
+                                        </span>
+                                        <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                          {p.metas.filter(m => m.monthlyGoal > 0).length} servicios
+                                        </span>
+                                        {p.vigencia && (
+                                          <span className="text-[11px] text-slate-400">vigencia: {p.vigencia}</span>
+                                        )}
+                                      </div>
+                                      {/* Actions */}
+                                      <div className="flex gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleLoadPrestadorMetas(p)}
+                                          className="text-[11px] px-2.5 py-1 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg font-medium transition-colors border border-indigo-200 dark:border-indigo-500/20"
+                                        >
+                                          Cargar Metas
+                                        </button>
+                                        <button
+                                          onClick={() => handleGenerarActa(p)}
+                                          className="text-[11px] flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg font-medium transition-colors border border-emerald-200 dark:border-emerald-500/20"
+                                        >
+                                          <ClipboardList className="h-3 w-3" /> Acta
+                                        </button>
+                                        {isAdmin && (<>
+                                          <button
+                                            onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', repLegalIPS: p.repLegalIPS || '', metas: mergedMetas }); setShowPrestForm(true); }}
+                                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+                                            title="Editar contrato"
+                                          >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeletePrestador(p.id)}
+                                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-500 hover:text-red-500 transition-colors"
+                                            title="Eliminar contrato"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
+                                        </>)}
+                                      </div>
+                                    </div>
+                                    {/* Actas for this contract */}
+                                    {pActas.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {pActas.map(acta => {
+                                          const totalProg = acta.servicios.reduce((s, x) => s + x.programado, 0);
+                                          const totalEjec = acta.servicios.reduce((s, x) => s + Math.min(x.ejecutado, x.programado), 0);
+                                          const cumpl = totalProg > 0 ? Math.min(Math.round((totalEjec / totalProg) * 100), 100) : 0;
+                                          const badgeColor = cumpl >= 100 ? 'bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400' : cumpl >= 80 ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400' : 'bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400';
+                                          return (
+                                            <div key={acta.id} className="flex items-center gap-1.5 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
+                                              <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400">{acta.numero}</span>
+                                              <span className="text-[10px] text-slate-400 hidden sm:inline">{acta.periodoEvaluado}</span>
+                                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badgeColor}`}>{cumpl}%</span>
+                                              <button onClick={() => handleEditActa(acta)} className="p-0.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-slate-400" title="Ver/Editar">
+                                                <Pencil className="h-3 w-3" />
+                                              </button>
+                                              <button onClick={() => handleDeleteActa(acta.id)} className="p-0.5 hover:text-red-500 transition-colors text-slate-400" title="Eliminar">
+                                                <Trash2 className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        )}
-                        <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-800 flex gap-2">
-                          <button
-                            onClick={() => handleLoadPrestadorMetas(p)}
-                            className="flex-1 py-2 px-3 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium transition-all border border-indigo-200 dark:border-indigo-500/20"
-                          >
-                            Cargar Metas
-                          </button>
-                          <button
-                            onClick={() => handleGenerarActa(p)}
-                            className="flex items-center gap-1.5 py-2 px-3 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium transition-all border border-emerald-200 dark:border-emerald-500/20"
-                          >
-                            <ClipboardList className="h-4 w-4" /> Acta
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
