@@ -254,6 +254,12 @@ function App() {
   const [editUser, setEditUser] = useState<AppUser | null>(null);
   const [userForm, setUserForm] = useState<{ username: string; password: string; nombre: string; role: 'admin' | 'general'; permissions: string[] }>({ username: '', password: '', nombre: '', role: 'general', permissions: ['dashboard','carga','prestadores','actas'] });
 
+  // Cambiar contraseña propia
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [changePwForm, setChangePwForm] = useState({ current: '', next: '', confirm: '' });
+  const [changePwError, setChangePwError] = useState('');
+  const [showChangePwFields, setShowChangePwFields] = useState({ current: false, next: false, confirm: false });
+
   // Prestador detectado en RIPS
   const [detectedPrestadorId, setDetectedPrestadorId] = useState<string | null>(null);
 
@@ -801,6 +807,29 @@ function App() {
   const handleLogout = () => {
     sessionStorage.removeItem('currentUser');
     setCurrentUser(null);
+  };
+
+  const handleChangePw = () => {
+    setChangePwError('');
+    if (!changePwForm.current || !changePwForm.next || !changePwForm.confirm) {
+      setChangePwError('Completa todos los campos.'); return;
+    }
+    if (changePwForm.current !== currentUser!.password) {
+      setChangePwError('La contraseña actual es incorrecta.'); return;
+    }
+    if (changePwForm.next.length < 6) {
+      setChangePwError('La nueva contraseña debe tener al menos 6 caracteres.'); return;
+    }
+    if (changePwForm.next !== changePwForm.confirm) {
+      setChangePwError('Las contraseñas nuevas no coinciden.'); return;
+    }
+    const updated = { ...currentUser!, password: changePwForm.next };
+    setUsers(prev => prev.map(u => u.id === currentUser!.id ? updated : u));
+    setCurrentUser(updated);
+    sessionStorage.setItem('currentUser', JSON.stringify(updated));
+    setShowChangePw(false);
+    setChangePwForm({ current: '', next: '', confirm: '' });
+    setMessage({ type: 'success', text: 'Contraseña actualizada correctamente.' });
   };
 
   const handleSaveUser = () => {
@@ -1628,12 +1657,19 @@ function App() {
             >
               {theme === 'dark' ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-indigo-500" />}
             </button>
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <div className="hidden md:flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <User className="h-4 w-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300 max-w-[120px] truncate">{currentUser.nombre}</span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isAdmin ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
                 {isAdmin ? 'Admin' : 'General'}
               </span>
+              <button
+                onClick={() => { setChangePwForm({ current: '', next: '', confirm: '' }); setChangePwError(''); setShowChangePwFields({ current: false, next: false, confirm: false }); setShowChangePw(true); }}
+                className="ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                title="Cambiar contraseña"
+              >
+                <Lock className="h-3.5 w-3.5" />
+              </button>
             </div>
             <button
               onClick={handleLogout}
@@ -4034,6 +4070,64 @@ function App() {
           </div>
         );
       })()}
+
+      {/* ===== MODAL CAMBIAR CONTRASEÑA ===== */}
+      {showChangePw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="font-bold text-base text-slate-800 dark:text-white flex items-center gap-2">
+                <Lock className="h-4 w-4 text-indigo-500" /> Cambiar Contraseña
+              </h3>
+              <button onClick={() => setShowChangePw(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold leading-none">×</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400">Usuario: <span className="font-semibold text-slate-700 dark:text-slate-200">{currentUser?.username}</span></p>
+
+              {/* Contraseña actual */}
+              {(['current', 'next', 'confirm'] as const).map((field, i) => (
+                <div key={field} className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    {field === 'current' ? 'Contraseña Actual' : field === 'next' ? 'Nueva Contraseña' : 'Confirmar Nueva Contraseña'}
+                    {field !== 'current' && <span className="text-rose-500 ml-0.5">*</span>}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      type={showChangePwFields[field] ? 'text' : 'password'}
+                      value={changePwForm[field]}
+                      onChange={e => { setChangePwForm(f => ({ ...f, [field]: e.target.value })); setChangePwError(''); }}
+                      placeholder={field === 'current' ? 'Tu contraseña actual' : field === 'next' ? 'Mínimo 6 caracteres' : 'Repite la nueva contraseña'}
+                      className="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    />
+                    <button type="button" onClick={() => setShowChangePwFields(f => ({ ...f, [field]: !f[field] }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                      {showChangePwFields[field] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {changePwError && (
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg px-3 py-2">
+                  {changePwError}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setShowChangePw(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={handleChangePw}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+                  Actualizar Clave
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
