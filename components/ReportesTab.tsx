@@ -15,11 +15,11 @@ interface Props { actas: Acta[]; prestadores: Prestador[]; }
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const pctGlobal = (a: Acta) => {
   const tot = a.servicios.reduce((s, sv) => s + sv.programado, 0);
-  const exe = a.servicios.reduce((s, sv) => s + sv.ejecutado, 0);
-  return tot > 0 ? Math.round(exe / tot * 100) : 0;
+  const exe = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0);
+  return tot > 0 ? Math.min(Math.round(exe / tot * 100), 100) : 0;
 };
 const pctSvc = (programado: number, ejecutado: number) =>
-  programado > 0 ? Math.round(ejecutado / programado * 100) : 0;
+  programado > 0 ? Math.min(Math.round(Math.min(ejecutado, programado) / programado * 100), 100) : 0;
 
 const badge = (p: number) =>
   p >= 100 ? 'bg-emerald-100 text-emerald-700' : p >= 80 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
@@ -169,7 +169,7 @@ export default function ReportesTab({ actas, prestadores }: Props) {
       const row: Record<string, string|number> = {
         'N° Acta': a.numero, 'Período': a.periodoEvaluado, 'Fecha Acta': a.fechaActa, '% Global': a.pct,
       };
-      a.servicios.forEach(s => { row[`${s.tipo} Prog.`] = s.programado; row[`${s.tipo} Ejec.`] = s.ejecutado; row[`${s.tipo} %`] = pctSvc(s.programado, s.ejecutado); });
+      a.servicios.forEach(s => { row[`${s.tipo} Prog.`] = s.programado; row[`${s.tipo} Ejec.`] = Math.min(s.ejecutado, s.programado); row[`${s.tipo} %`] = pctSvc(s.programado, s.ejecutado); });
       return row;
     });
     const wb = utils.book_new();
