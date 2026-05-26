@@ -41,9 +41,16 @@ function deduplicarActas(raw: import('./types').Acta[]): import('./types').Acta[
     const ex = byNumero.get(a.numero);
     if (!ex || pct(a) > pct(ex)) byNumero.set(a.numero, a);
   });
-  // Paso 3: dedup por NIT + período + régimen (misma IPS, mismo período, mismo régimen → mayor %)
-  const byNitPeriodo = new Map<string, import('./types').Acta>();
+  // Paso 3: dedup por prestadorId + período (mismo prestador, mismo período → mayor %)
+  const byPrestPeriodo = new Map<string, import('./types').Acta>();
   [...byNumero.values()].forEach(a => {
+    const key = `${a.prestadorId}|${a.periodoEvaluado}`;
+    const ex = byPrestPeriodo.get(key);
+    if (!ex || pct(a) > pct(ex)) byPrestPeriodo.set(key, a);
+  });
+  // Paso 4: dedup por NIT + período + régimen (misma IPS, mismo período, mismo régimen → mayor %)
+  const byNitPeriodo = new Map<string, import('./types').Acta>();
+  [...byPrestPeriodo.values()].forEach(a => {
     const key = `${a.nit}|${a.periodoEvaluado}|${(a.regimen || 'SUBSIDIADO').toUpperCase()}`;
     const ex = byNitPeriodo.get(key);
     if (!ex || pct(a) > pct(ex)) byNitPeriodo.set(key, a);
@@ -706,6 +713,24 @@ function App() {
       actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato))
            .map(a => [a.id, a])
     ).values()];
+
+    // Validar: ya existe acta para este prestador en el período seleccionado
+    if (periodoTexto) {
+      const actaPeriodoExistente = prestadorActas.find(a => a.periodoEvaluado === periodoTexto);
+      if (actaPeriodoExistente) {
+        const pct = (() => { const prog = actaPeriodoExistente.servicios.reduce((s, sv) => s + sv.programado, 0); const ejec = actaPeriodoExistente.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0); return prog > 0 ? Math.round(ejec / prog * 100) : 0; })();
+        const sobreescribir = window.confirm(
+          `Ya existe el acta "${actaPeriodoExistente.numero}" para ${p.nombre}\n` +
+          `Período: ${periodoTexto}\n` +
+          `Cumplimiento actual: ${pct}%\n\n` +
+          `¿Deseas crear una nueva acta y reemplazar la existente?`
+        );
+        if (!sobreescribir) return;
+        // Remove the existing acta for this period before creating new one
+        setActas(prev => prev.filter(a => a.id !== actaPeriodoExistente.id));
+      }
+    }
+
     // Generate a number that doesn't already exist
     let seq = prestadorActas.length + 1;
     let numero = `${p.contrato}-${seq}`;
