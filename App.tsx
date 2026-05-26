@@ -32,30 +32,18 @@ function deduplicarActas(raw: import('./types').Acta[]): import('./types').Acta[
     const ejec = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0);
     return prog > 0 ? ejec / prog : 0;
   };
-  // Paso 1: dedup por id (igual id → quedarse con el último)
+  // Paso 1: dedup por id exacto (misma instancia guardada dos veces → queda una)
   const byId = new Map<string, import('./types').Acta>();
   raw.forEach(a => byId.set(a.id, a));
-  // Paso 2: dedup por número de acta (igual número → mayor %)
-  const byNumero = new Map<string, import('./types').Acta>();
+  // Paso 2: dedup por número de acta exacto + mismo prestadorId
+  // (misma acta regenerada → queda la de mayor %)
+  const byNumeroYPrest = new Map<string, import('./types').Acta>();
   [...byId.values()].forEach(a => {
-    const ex = byNumero.get(a.numero);
-    if (!ex || pct(a) > pct(ex)) byNumero.set(a.numero, a);
+    const key = `${a.prestadorId}||${a.numero}`;
+    const ex = byNumeroYPrest.get(key);
+    if (!ex || pct(a) > pct(ex)) byNumeroYPrest.set(key, a);
   });
-  // Paso 3: dedup por prestadorId + período (mismo prestador, mismo período → mayor %)
-  const byPrestPeriodo = new Map<string, import('./types').Acta>();
-  [...byNumero.values()].forEach(a => {
-    const key = `${a.prestadorId}|${a.periodoEvaluado}`;
-    const ex = byPrestPeriodo.get(key);
-    if (!ex || pct(a) > pct(ex)) byPrestPeriodo.set(key, a);
-  });
-  // Paso 4: dedup por NIT + período + régimen (misma IPS, mismo período, mismo régimen → mayor %)
-  const byNitPeriodo = new Map<string, import('./types').Acta>();
-  [...byPrestPeriodo.values()].forEach(a => {
-    const key = `${a.nit}|${a.periodoEvaluado}|${(a.regimen || 'SUBSIDIADO').toUpperCase()}`;
-    const ex = byNitPeriodo.get(key);
-    if (!ex || pct(a) > pct(ex)) byNitPeriodo.set(key, a);
-  });
-  return [...byNitPeriodo.values()];
+  return [...byNumeroYPrest.values()];
 }
 
 const DEFAULT_USERS: AppUser[] = [
@@ -892,16 +880,19 @@ function App() {
       actaToSave = { ...actaToSave, numero: `${contrato}-${existing.length + 1}` };
       setInlineActa(actaToSave);
     }
-    // Check for duplicates (same número OR same NIT+período+régimen, different id)
-    const regimen = (actaToSave.regimen || 'SUBSIDIADO').toUpperCase();
-    const dupByNumero = actas.find(a => a.id !== actaToSave.id && a.numero === actaToSave.numero);
-    const dupByNitPeriodo = actas.find(a =>
+    // Check for duplicates: mismo número exacto para el mismo prestador
+    const dupByNumero = actas.find(a =>
       a.id !== actaToSave.id &&
-      a.nit === actaToSave.nit &&
-      a.periodoEvaluado === actaToSave.periodoEvaluado &&
-      (a.regimen || 'SUBSIDIADO').toUpperCase() === regimen
+      a.numero === actaToSave.numero &&
+      a.prestadorId === actaToSave.prestadorId
     );
-    const dup = dupByNumero || dupByNitPeriodo;
+    // También: mismo prestador + mismo período (dos actas distintas para mismo contrato+período)
+    const dupByPrestPeriodo = actas.find(a =>
+      a.id !== actaToSave.id &&
+      a.prestadorId === actaToSave.prestadorId &&
+      a.periodoEvaluado === actaToSave.periodoEvaluado
+    );
+    const dup = dupByNumero || dupByPrestPeriodo;
     if (dup) {
       const pct = (a: Acta) => { const p = a.servicios.reduce((s, sv) => s + sv.programado, 0); const e = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0); return p > 0 ? Math.round(e / p * 100) : 0; };
       const motivo = dupByNumero
