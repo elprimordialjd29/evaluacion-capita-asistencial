@@ -354,9 +354,20 @@ function App() {
           CloudStorage.set('prestadores', cleanP);
         }
         if (cloudData['actas']?.length > 0) {
-          const cleanCloud = deduplicarActas(cloudData['actas'] as Acta[]);
+          // Guardar respaldo antes de procesar nube (protección contra hard-refresh)
+          const local: Acta[] = (() => { try { const s = localStorage.getItem('actas'); return s ? JSON.parse(s) : []; } catch { return []; } })();
+          // Fusionar: si la nube tiene actas que el local no tiene (y viceversa), conservar todas
+          const merged = new Map<string, Acta>();
+          [...(cloudData['actas'] as Acta[]), ...local].forEach(a => {
+            const ex = merged.get(a.id);
+            const pct = (x: Acta) => { const p = x.servicios.reduce((s, sv) => s + sv.programado, 0); const e = x.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0); return p > 0 ? e / p : 0; };
+            if (!ex || pct(a) > pct(ex)) merged.set(a.id, a);
+          });
+          const cleanCloud = deduplicarActas([...merged.values()]);
           setActas(cleanCloud);
           localStorage.setItem('actas', JSON.stringify(cleanCloud));
+          // Guardar respaldo en clave separada (no se borra con limpiezas)
+          localStorage.setItem('actas_backup', JSON.stringify(cleanCloud));
           CloudStorage.set('actas', cleanCloud);
         }
         if (cloudData['appUsers']?.length > 0) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
@@ -494,9 +505,10 @@ function App() {
     if (cloudInitialized.current) CloudStorage.set('customCups', customCupsList);
   }, [customCupsList]);
 
-  // Save actas
+  // Save actas + rolling backup
   useEffect(() => {
     localStorage.setItem('actas', JSON.stringify(actas));
+    if (actas.length > 0) localStorage.setItem('actas_backup', JSON.stringify(actas));
     if (cloudInitialized.current) CloudStorage.set('actas', actas);
   }, [actas]);
 
@@ -522,6 +534,22 @@ function App() {
       await StorageService.clearData();
       setMessage({ type: 'success', text: 'Base de datos limpia correctamente.' });
     }
+  };
+
+  const handleRestoreBackup = () => {
+    try {
+      const backup = localStorage.getItem('actas_backup');
+      if (!backup) { setMessage({ type: 'error', text: 'No hay respaldo disponible.' }); return; }
+      const backupActas: Acta[] = JSON.parse(backup);
+      if (!backupActas.length) { setMessage({ type: 'error', text: 'El respaldo está vacío.' }); return; }
+      // Merge backup with current actas — keep all, prefer backup for same id
+      const merged = new Map<string, Acta>();
+      [...actas, ...backupActas].forEach(a => merged.set(a.id, a));
+      const restored = [...merged.values()];
+      setActas(restored);
+      if (cloudInitialized.current) CloudStorage.set('actas', restored);
+      setMessage({ type: 'success', text: `Respaldo restaurado: ${restored.length} actas recuperadas.` });
+    } catch { setMessage({ type: 'error', text: 'Error al leer el respaldo.' }); }
   };
 
   const handleSaveSession = async () => {
@@ -1791,7 +1819,16 @@ function App() {
               <LogOut className="h-5 w-5" />
             </button>
             <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden md:block"></div>
-            <button 
+            {localStorage.getItem('actas_backup') && (
+              <button
+                onClick={handleRestoreBackup}
+                className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 transition-all"
+                title="Restaurar actas desde respaldo local"
+              >
+                <HardDrive className="h-4 w-4" /> Restaurar
+              </button>
+            )}
+            <button
               onClick={handleSaveSession}
               disabled={isSaving}
               className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md ${isSaving ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-wait' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 active:scale-95'}`}
