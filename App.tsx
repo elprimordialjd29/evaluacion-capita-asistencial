@@ -25,6 +25,32 @@ import ReportesTab from './components/ReportesTab';
 
 const MESES_NOMBRES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+// ── Deduplicación de actas ─────────────────────────────────────────────────
+function deduplicarActas(raw: import('./types').Acta[]): import('./types').Acta[] {
+  const pct = (a: import('./types').Acta) => {
+    const prog = a.servicios.reduce((s, sv) => s + sv.programado, 0);
+    const ejec = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0);
+    return prog > 0 ? ejec / prog : 0;
+  };
+  // Paso 1: dedup por id (igual id → quedarse con el último)
+  const byId = new Map<string, import('./types').Acta>();
+  raw.forEach(a => byId.set(a.id, a));
+  // Paso 2: dedup por número de acta (igual número → mayor %)
+  const byNumero = new Map<string, import('./types').Acta>();
+  [...byId.values()].forEach(a => {
+    const ex = byNumero.get(a.numero);
+    if (!ex || pct(a) > pct(ex)) byNumero.set(a.numero, a);
+  });
+  // Paso 3: dedup por NIT + período + régimen (misma IPS, mismo período, mismo régimen → mayor %)
+  const byNitPeriodo = new Map<string, import('./types').Acta>();
+  [...byNumero.values()].forEach(a => {
+    const key = `${a.nit}|${a.periodoEvaluado}|${(a.regimen || 'SUBSIDIADO').toUpperCase()}`;
+    const ex = byNitPeriodo.get(key);
+    if (!ex || pct(a) > pct(ex)) byNitPeriodo.set(key, a);
+  });
+  return [...byNitPeriodo.values()];
+}
+
 const DEFAULT_USERS: AppUser[] = [
   { id: '1', username: 'admin', password: 'admin123', nombre: 'Administrador', role: 'admin' },
   { id: '2', username: 'general', password: 'general123', nombre: 'Usuario General', role: 'general', permissions: ['dashboard','carga','prestadores','actas'] },
@@ -198,23 +224,7 @@ function App() {
       const s = localStorage.getItem('actas');
       if (!s) return [];
       const raw: Acta[] = JSON.parse(s);
-      // Helper: cumplimiento real de un acta
-      const pct = (a: Acta) => {
-        const prog = a.servicios.reduce((sum, sv) => sum + sv.programado, 0);
-        const ejec = a.servicios.reduce((sum, sv) => sum + Math.min(sv.ejecutado, sv.programado), 0);
-        return prog > 0 ? ejec / prog : 0;
-      };
-      // 1. Dedup by id (keep last)
-      const byId = new Map<string, Acta>();
-      raw.forEach(a => byId.set(a.id, a));
-      // 2. Dedup by numero — keep the one with highest cumplimiento
-      const byNumero = new Map<string, Acta>();
-      [...byId.values()].forEach(a => {
-        const existing = byNumero.get(a.numero);
-        if (!existing || pct(a) > pct(existing)) byNumero.set(a.numero, a);
-      });
-      const clean = [...byNumero.values()];
-      // Persist cleaned list immediately
+      const clean = deduplicarActas(raw);
       localStorage.setItem('actas', JSON.stringify(clean));
       return clean;
     } catch { return []; }
@@ -330,15 +340,9 @@ function App() {
         const cloudData = await CloudStorage.getAll(cloudKeys);
         if (cloudData['prestadores']?.length > 0) { setPrestadores(cloudData['prestadores']); localStorage.setItem('prestadores', JSON.stringify(cloudData['prestadores'])); }
         if (cloudData['actas']?.length > 0) {
-          const rawCloud: Acta[] = cloudData['actas'];
-          const pct = (a: Acta) => { const prog = a.servicios.reduce((s, sv) => s + sv.programado, 0); const ejec = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0); return prog > 0 ? ejec / prog : 0; };
-          const byId = new Map<string, Acta>(); rawCloud.forEach(a => byId.set(a.id, a));
-          const byNumero = new Map<string, Acta>();
-          [...byId.values()].forEach(a => { const ex = byNumero.get(a.numero); if (!ex || pct(a) > pct(ex)) byNumero.set(a.numero, a); });
-          const cleanCloud = [...byNumero.values()];
+          const cleanCloud = deduplicarActas(cloudData['actas'] as Acta[]);
           setActas(cleanCloud);
           localStorage.setItem('actas', JSON.stringify(cleanCloud));
-          // Push clean version back to cloud immediately
           CloudStorage.set('actas', cleanCloud);
         }
         if (cloudData['appUsers']?.length > 0) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
