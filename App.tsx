@@ -194,7 +194,15 @@ function App() {
 
   // Actas  (lazy init from localStorage)
   const [actas, setActas] = useState<Acta[]>(() => {
-    try { const s = localStorage.getItem('actas'); return s ? JSON.parse(s) : []; } catch { return []; }
+    try {
+      const s = localStorage.getItem('actas');
+      if (!s) return [];
+      const raw: Acta[] = JSON.parse(s);
+      // Dedup by id — keep last occurrence (most recent save wins)
+      const map = new Map<string, Acta>();
+      raw.forEach(a => map.set(a.id, a));
+      return [...map.values()];
+    } catch { return []; }
   });
   const [showActaModal, setShowActaModal] = useState(false);  // floating modal (from dashboard)
   const [editingActa, setEditingActa] = useState<Acta | null>(null);
@@ -664,8 +672,14 @@ function App() {
 
   // --- Acta Handlers ---
   const handleGenerarActa = (p: Prestador) => {
-    const prestadorActas = actas.filter(a => a.prestadorId === p.id);
-    const numero = `${p.contrato}-${prestadorActas.length + 1}`;
+    const prestadorActas = [...new Map(
+      actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato))
+           .map(a => [a.id, a])
+    ).values()];
+    // Generate a number that doesn't already exist
+    let seq = prestadorActas.length + 1;
+    let numero = `${p.contrato}-${seq}`;
+    while (actas.some(a => a.numero === numero)) { seq++; numero = `${p.contrato}-${seq}`; }
     const ripsPertenecenAlPrestador = detectedPrestadorId === p.id;
     const servicios: ActaServicio[] = p.metas
       .filter(m => m.active && m.monthlyGoal > 0)
@@ -797,8 +811,10 @@ function App() {
       const next = idx >= 0
         ? prev.map((a, i) => i === idx ? actaToSave : a)
         : [...prev, actaToSave];
-      localStorage.setItem('actas', JSON.stringify(next));
-      return next;
+      // Always deduplicate by id before saving
+      const deduped = [...new Map(next.map(a => [a.id, a])).values()];
+      localStorage.setItem('actas', JSON.stringify(deduped));
+      return deduped;
     });
     setMessage({ type: 'success', text: `Acta ${actaToSave.numero} guardada.` });
   };
@@ -1848,7 +1864,7 @@ function App() {
                   const q = searchPrestador.toLowerCase();
                   return p.nombre.toLowerCase().includes(q) || p.contrato.toLowerCase().includes(q);
                 }).map(p => {
-                  const pActas = actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato));
+                  const pActas = [...new Map(actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).map(a => [a.id, a])).values()];
                   const isSelected = selectedDashPrestador === p.id;
                   return (
                     <div key={p.id}
@@ -2680,7 +2696,7 @@ function App() {
                       {Object.entries(groups).map(([nit, grupo]) => {
                         const rep = grupo[0];
                         const totalActas = grupo.reduce((sum, p) =>
-                          sum + actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).length, 0);
+                          sum + [...new Map(actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).map(a => [a.id, a])).values()].length, 0);
                         return (
                           <div key={nit} className="glass-panel rounded-2xl shadow-lg overflow-hidden">
                             {/* Group header */}
@@ -2713,7 +2729,7 @@ function App() {
                             {/* Contracts table */}
                             <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                               {grupo.map(p => {
-                                const pActas = actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato));
+                                const pActas = [...new Map(actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).map(a => [a.id, a])).values()];
                                 return (
                                   <div key={p.id} className="px-5 py-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
                                     <div className="flex items-start justify-between gap-3">
