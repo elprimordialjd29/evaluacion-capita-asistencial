@@ -207,7 +207,18 @@ function App() {
 
   // Mantenimiento – Prestadores  (lazy init from localStorage — avoids save-before-load race)
   const [prestadores, setPrestadores] = useState<Prestador[]>(() => {
-    try { const s = localStorage.getItem('prestadores'); return s ? JSON.parse(s) : []; } catch { return []; }
+    try {
+      const s = localStorage.getItem('prestadores');
+      if (!s) return [];
+      const raw: Prestador[] = JSON.parse(s);
+      // Dedup by id, then by nit+contrato (keep last)
+      const byId = new Map<string, Prestador>(); raw.forEach(p => byId.set(p.id, p));
+      const byNitContrato = new Map<string, Prestador>();
+      [...byId.values()].forEach(p => byNitContrato.set(`${p.nit}|${p.contrato}`, p));
+      const clean = [...byNitContrato.values()];
+      localStorage.setItem('prestadores', JSON.stringify(clean));
+      return clean;
+    } catch { return []; }
   });
   const [showPrestForm, setShowPrestForm] = useState(false);
   const [editPrest, setEditPrest] = useState<Prestador | null>(null);
@@ -345,7 +356,15 @@ function App() {
         // Siempre sincronizar desde Supabase (fuente de verdad)
         const cloudKeys = ['prestadores', 'actas', 'appUsers', 'funcionarios', 'firmasGlobales', 'customCups'];
         const cloudData = await CloudStorage.getAll(cloudKeys);
-        if (cloudData['prestadores']?.length > 0) { setPrestadores(cloudData['prestadores']); localStorage.setItem('prestadores', JSON.stringify(cloudData['prestadores'])); }
+        if (cloudData['prestadores']?.length > 0) {
+          const rawP: Prestador[] = cloudData['prestadores'];
+          const byIdP = new Map<string, Prestador>(); rawP.forEach(p => byIdP.set(p.id, p));
+          const byNitContratoP = new Map<string, Prestador>();
+          [...byIdP.values()].forEach(p => byNitContratoP.set(`${p.nit}|${p.contrato}`, p));
+          const cleanP = [...byNitContratoP.values()];
+          setPrestadores(cleanP); localStorage.setItem('prestadores', JSON.stringify(cleanP));
+          CloudStorage.set('prestadores', cleanP);
+        }
         if (cloudData['actas']?.length > 0) {
           const cleanCloud = deduplicarActas(cloudData['actas'] as Acta[]);
           setActas(cleanCloud);
