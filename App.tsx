@@ -198,10 +198,25 @@ function App() {
       const s = localStorage.getItem('actas');
       if (!s) return [];
       const raw: Acta[] = JSON.parse(s);
-      // Dedup by id — keep last occurrence (most recent save wins)
-      const map = new Map<string, Acta>();
-      raw.forEach(a => map.set(a.id, a));
-      return [...map.values()];
+      // Helper: cumplimiento real de un acta
+      const pct = (a: Acta) => {
+        const prog = a.servicios.reduce((sum, sv) => sum + sv.programado, 0);
+        const ejec = a.servicios.reduce((sum, sv) => sum + Math.min(sv.ejecutado, sv.programado), 0);
+        return prog > 0 ? ejec / prog : 0;
+      };
+      // 1. Dedup by id (keep last)
+      const byId = new Map<string, Acta>();
+      raw.forEach(a => byId.set(a.id, a));
+      // 2. Dedup by numero — keep the one with highest cumplimiento
+      const byNumero = new Map<string, Acta>();
+      [...byId.values()].forEach(a => {
+        const existing = byNumero.get(a.numero);
+        if (!existing || pct(a) > pct(existing)) byNumero.set(a.numero, a);
+      });
+      const clean = [...byNumero.values()];
+      // Persist cleaned list immediately
+      localStorage.setItem('actas', JSON.stringify(clean));
+      return clean;
     } catch { return []; }
   });
   const [showActaModal, setShowActaModal] = useState(false);  // floating modal (from dashboard)
