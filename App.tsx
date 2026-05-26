@@ -329,7 +329,18 @@ function App() {
         const cloudKeys = ['prestadores', 'actas', 'appUsers', 'funcionarios', 'firmasGlobales', 'customCups'];
         const cloudData = await CloudStorage.getAll(cloudKeys);
         if (cloudData['prestadores']?.length > 0) { setPrestadores(cloudData['prestadores']); localStorage.setItem('prestadores', JSON.stringify(cloudData['prestadores'])); }
-        if (cloudData['actas']?.length > 0) { setActas(cloudData['actas']); localStorage.setItem('actas', JSON.stringify(cloudData['actas'])); }
+        if (cloudData['actas']?.length > 0) {
+          const rawCloud: Acta[] = cloudData['actas'];
+          const pct = (a: Acta) => { const prog = a.servicios.reduce((s, sv) => s + sv.programado, 0); const ejec = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0); return prog > 0 ? ejec / prog : 0; };
+          const byId = new Map<string, Acta>(); rawCloud.forEach(a => byId.set(a.id, a));
+          const byNumero = new Map<string, Acta>();
+          [...byId.values()].forEach(a => { const ex = byNumero.get(a.numero); if (!ex || pct(a) > pct(ex)) byNumero.set(a.numero, a); });
+          const cleanCloud = [...byNumero.values()];
+          setActas(cleanCloud);
+          localStorage.setItem('actas', JSON.stringify(cleanCloud));
+          // Push clean version back to cloud immediately
+          CloudStorage.set('actas', cleanCloud);
+        }
         if (cloudData['appUsers']?.length > 0) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
         if (cloudData['funcionarios']?.length > 0) { setFuncionarios(cloudData['funcionarios']); localStorage.setItem('funcionarios', JSON.stringify(cloudData['funcionarios'])); }
         if (cloudData['firmasGlobales'] && Object.keys(cloudData['firmasGlobales']).length > 0) { setFirmasGlobales(cloudData['firmasGlobales']); localStorage.setItem('firmasGlobales', JSON.stringify(cloudData['firmasGlobales'])); }
