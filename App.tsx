@@ -826,9 +826,21 @@ function App() {
     };
   };
 
+  const doSaveInlineActa = (actaToSave: Acta) => {
+    setActas(prev => {
+      const idx = prev.findIndex(a => a.id === actaToSave.id);
+      const next = idx >= 0
+        ? prev.map((a, i) => i === idx ? actaToSave : a)
+        : [...prev, actaToSave];
+      const deduped = [...new Map(next.map(a => [a.id, a])).values()];
+      localStorage.setItem('actas', JSON.stringify(deduped));
+      return deduped;
+    });
+    setMessage({ type: 'success', text: `Acta ${actaToSave.numero} guardada.` });
+  };
+
   const handleSaveInlineActa = () => {
     if (!inlineActa) return;
-    // Auto-generate numero if empty, using contract + sequence
     let actaToSave = inlineActa;
     if (!actaToSave.numero.trim()) {
       const contrato = actaToSave.contrato || (detectedPrestadorId ? prestadores.find(p => p.id === detectedPrestadorId)?.contrato : '') || 'ACTA';
@@ -836,17 +848,36 @@ function App() {
       actaToSave = { ...actaToSave, numero: `${contrato}-${existing.length + 1}` };
       setInlineActa(actaToSave);
     }
-    setActas(prev => {
-      const idx = prev.findIndex(a => a.id === actaToSave.id);
-      const next = idx >= 0
-        ? prev.map((a, i) => i === idx ? actaToSave : a)
-        : [...prev, actaToSave];
-      // Always deduplicate by id before saving
-      const deduped = [...new Map(next.map(a => [a.id, a])).values()];
-      localStorage.setItem('actas', JSON.stringify(deduped));
-      return deduped;
-    });
-    setMessage({ type: 'success', text: `Acta ${actaToSave.numero} guardada.` });
+    // Check for duplicates (same número OR same NIT+período+régimen, different id)
+    const regimen = (actaToSave.regimen || 'SUBSIDIADO').toUpperCase();
+    const dupByNumero = actas.find(a => a.id !== actaToSave.id && a.numero === actaToSave.numero);
+    const dupByNitPeriodo = actas.find(a =>
+      a.id !== actaToSave.id &&
+      a.nit === actaToSave.nit &&
+      a.periodoEvaluado === actaToSave.periodoEvaluado &&
+      (a.regimen || 'SUBSIDIADO').toUpperCase() === regimen
+    );
+    const dup = dupByNumero || dupByNitPeriodo;
+    if (dup) {
+      const pct = (a: Acta) => { const p = a.servicios.reduce((s, sv) => s + sv.programado, 0); const e = a.servicios.reduce((s, sv) => s + Math.min(sv.ejecutado, sv.programado), 0); return p > 0 ? Math.round(e / p * 100) : 0; };
+      const motivo = dupByNumero
+        ? `Ya existe el acta <strong>${dup.numero}</strong> con el mismo número`
+        : `Ya existe el acta <strong>${dup.numero}</strong> para <strong>${dup.empresa}</strong> en el período <strong>${dup.periodoEvaluado}</strong> (${dup.regimen || 'SUBSIDIADO'})`;
+      const msg = `${motivo} — cumplimiento actual: ${pct(dup)}%.\n\n¿Deseas sobreescribirla con el acta actual (${pct(actaToSave)}%)?`;
+      if (!window.confirm(msg.replace(/<strong>|<\/strong>/g, ''))) return;
+      // Remove the existing duplicate before saving
+      setActas(prev => {
+        const sin = prev.filter(a => a.id !== dup.id);
+        const idx = sin.findIndex(a => a.id === actaToSave.id);
+        const next = idx >= 0 ? sin.map((a, i) => i === idx ? actaToSave : a) : [...sin, actaToSave];
+        const deduped = [...new Map(next.map(a => [a.id, a])).values()];
+        localStorage.setItem('actas', JSON.stringify(deduped));
+        return deduped;
+      });
+      setMessage({ type: 'success', text: `Acta ${actaToSave.numero} guardada (acta anterior reemplazada).` });
+      return;
+    }
+    doSaveInlineActa(actaToSave);
   };
 
   // --- Auth Handlers ---
