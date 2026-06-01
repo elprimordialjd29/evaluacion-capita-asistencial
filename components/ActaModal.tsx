@@ -100,10 +100,10 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <div className="font-black text-[15px] uppercase leading-tight">ACTA DE EVALUACIÓN DE SERVICIOS</div>
           </div>
           <div className="border-l border-gray-500 p-1.5 text-[9px] leading-snug text-gray-700">
-            <div><b>CÓDIGO:</b> DR-BC-AP-F-11</div>
+            <div><b>CÓDIGO:</b> DGR-BAJ-FT-11</div>
             <div><b>VERSIÓN:</b> 02</div>
             <div><b>EMISIÓN:</b> 15/06/2022</div>
-            <div><b>VIGENCIA:</b> 27/12/2022</div>
+            <div><b>VIGENCIA:</b> 02/03/2028</div>
             <div className="mt-0.5 text-gray-500">PÁGINA 1 DE 2</div>
           </div>
         </div>
@@ -267,10 +267,10 @@ export function ActaPreview({ acta }: { acta: Acta }) {
             <div className="font-black text-[15px] uppercase leading-tight">ACTA DE EVALUACIÓN DE SERVICIOS</div>
           </div>
           <div className="border-l border-gray-500 p-1.5 text-[9px] leading-snug text-gray-700">
-            <div><b>CÓDIGO:</b> DR-BC-AP-F-11</div>
+            <div><b>CÓDIGO:</b> DGR-BAJ-FT-11</div>
             <div><b>VERSIÓN:</b> 02</div>
             <div><b>EMISIÓN:</b> 15/06/2022</div>
-            <div><b>VIGENCIA:</b> 27/12/2022</div>
+            <div><b>VIGENCIA:</b> 02/03/2028</div>
             <div className="mt-0.5 text-gray-500">PÁGINA 2 DE 2</div>
           </div>
         </div>
@@ -363,7 +363,7 @@ export default function ActaModal({
   const handleExportExcel = () => {
     const wb = utils.book_new();
     const header: any[][] = [
-      ['ACTA DE EVALUACIÓN DE SERVICIOS – BAJA COMPLEJIDAD', '', '', 'CÓDIGO: DR-BC-AP-F-11 / VERSIÓN: 02'],
+      ['ACTA DE EVALUACIÓN DE SERVICIOS – BAJA COMPLEJIDAD', '', '', 'CÓDIGO: DGR-BAJ-FT-11 / VERSIÓN: 02'],
       ['PROCESO: GESTIÓN DEL RIESGO EN SALUD'],
       [],
       ['ACTA N°', acta.numero, 'FECHA DE EVALUACIÓN', acta.fechaActa, 'PERÍODO EVALUADO', acta.periodoEvaluado, 'VIGENCIA DEL CONTRATO', acta.vigencia],
