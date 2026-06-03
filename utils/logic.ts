@@ -118,6 +118,15 @@ const CUPS_MAP_RAW: [string, string[]][] = [
   ["HOSP BAJA COMPLEJIDAD", [
     "130B01","129B01","130B021"
   ]],
+  ["PEDIATRIA", [
+    "890283","890383"
+  ]],
+  ["PSICOLOGIA", [
+    "890208","890308"
+  ]],
+  ["NUTRICION", [
+    "890206","890306"
+  ]],
 ];
 
 export const CUPS_TIPO_MAP: Record<string, string> = {};
@@ -138,5 +147,8 @@ export const TIPOS_SERVICIOS_DEFAULT = [
   "TAB",
   "URGENCIAS BC",
   "HOSP BAJA COMPLEJIDAD",
-  "MEDICAMENTOS"
+  "MEDICAMENTOS",
+  "PEDIATRIA",
+  "PSICOLOGIA",
+  "NUTRICION"
 ];
