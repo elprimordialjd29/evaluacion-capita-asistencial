@@ -10,7 +10,7 @@ import {
   Settings, Plus, Pencil, Check, Building2, ClipboardList, LogOut, ShieldCheck, User, Lock, Eye, EyeOff, HardDrive
 } from 'lucide-react';
 import {
-  normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, CUPS_TIPO_MAP,
+  normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, TIPOS_ASISTENCIAL, TIPOS_ESPECIALIDADES, CUPS_TIPO_MAP,
   edadDetallada, grupoEtarioDesdeFN
 } from './utils/logic';
 import {
@@ -366,8 +366,12 @@ function App() {
           const cleanCloud = deduplicarActas([...merged.values()]);
           setActas(cleanCloud);
           localStorage.setItem('actas', JSON.stringify(cleanCloud));
-          // Guardar respaldo en clave separada (no se borra con limpiezas)
-          localStorage.setItem('actas_backup', JSON.stringify(cleanCloud));
+          // Solo actualizar backup si el resultado tiene >= actas que el respaldo actual
+          const existingBackupRaw = localStorage.getItem('actas_backup');
+          const existingBackupCount = existingBackupRaw ? (() => { try { return JSON.parse(existingBackupRaw).length; } catch { return 0; } })() : 0;
+          if (cleanCloud.length >= existingBackupCount) {
+            localStorage.setItem('actas_backup', JSON.stringify(cleanCloud));
+          }
           CloudStorage.set('actas', cleanCloud);
         }
         if (cloudData['appUsers']?.length > 0) { setUsers(cloudData['appUsers']); localStorage.setItem('appUsers', JSON.stringify(cloudData['appUsers'])); }
@@ -505,10 +509,22 @@ function App() {
     if (cloudInitialized.current) CloudStorage.set('customCups', customCupsList);
   }, [customCupsList]);
 
-  // Save actas + rolling backup
+  // Save actas + versioned rolling backup (NEVER sobrescribe respaldo con menos actas)
   useEffect(() => {
     localStorage.setItem('actas', JSON.stringify(actas));
-    if (actas.length > 0) localStorage.setItem('actas_backup', JSON.stringify(actas));
+    if (actas.length > 0) {
+      const existingRaw = localStorage.getItem('actas_backup');
+      const existingCount = existingRaw ? (() => { try { return JSON.parse(existingRaw).length; } catch { return 0; } })() : 0;
+      if (actas.length >= existingCount) {
+        // Rotar versiones: backup → v1, v1 → v2, v2 → v3 (descartamos v3 vieja)
+        const v1 = localStorage.getItem('actas_backup_v1');
+        const v2 = localStorage.getItem('actas_backup_v2');
+        if (v2) localStorage.setItem('actas_backup_v3', v2);
+        if (v1) localStorage.setItem('actas_backup_v2', v1);
+        if (existingRaw) localStorage.setItem('actas_backup_v1', existingRaw);
+        localStorage.setItem('actas_backup', JSON.stringify(actas));
+      }
+    }
     if (cloudInitialized.current) CloudStorage.set('actas', actas);
   }, [actas]);
 
@@ -538,17 +554,23 @@ function App() {
 
   const handleRestoreBackup = () => {
     try {
-      const backup = localStorage.getItem('actas_backup');
-      if (!backup) { setMessage({ type: 'error', text: 'No hay respaldo disponible.' }); return; }
-      const backupActas: Acta[] = JSON.parse(backup);
-      if (!backupActas.length) { setMessage({ type: 'error', text: 'El respaldo está vacío.' }); return; }
-      // Merge backup with current actas — keep all, prefer backup for same id
+      // Combinar TODAS las versiones de respaldo para maximizar recuperación
+      const backupKeys = ['actas_backup', 'actas_backup_v1', 'actas_backup_v2', 'actas_backup_v3'];
+      const allBackupActas: Acta[] = [];
+      let foundAny = false;
+      backupKeys.forEach(k => {
+        try {
+          const s = localStorage.getItem(k);
+          if (s) { const parsed: Acta[] = JSON.parse(s); if (parsed.length > 0) { allBackupActas.push(...parsed); foundAny = true; } }
+        } catch { /* ignore */ }
+      });
+      if (!foundAny) { setMessage({ type: 'error', text: 'No hay ningún respaldo disponible.' }); return; }
       const merged = new Map<string, Acta>();
-      [...actas, ...backupActas].forEach(a => merged.set(a.id, a));
+      [...actas, ...allBackupActas].forEach(a => merged.set(a.id, a));
       const restored = [...merged.values()];
       setActas(restored);
       if (cloudInitialized.current) CloudStorage.set('actas', restored);
-      setMessage({ type: 'success', text: `Respaldo restaurado: ${restored.length} actas recuperadas.` });
+      setMessage({ type: 'success', text: `Respaldo restaurado: ${restored.length} actas recuperadas (${restored.length - actas.length >= 0 ? '+' + (restored.length - actas.length) : restored.length - actas.length} nuevas).` });
     } catch { setMessage({ type: 'error', text: 'Error al leer el respaldo.' }); }
   };
 
@@ -1819,11 +1841,11 @@ function App() {
               <LogOut className="h-5 w-5" />
             </button>
             <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden md:block"></div>
-            {localStorage.getItem('actas_backup') && (
+            {currentUser?.role === 'admin' && localStorage.getItem('actas_backup') && (
               <button
                 onClick={handleRestoreBackup}
                 className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 transition-all"
-                title="Restaurar actas desde respaldo local"
+                title="Restaurar actas desde respaldo local (solo administrador)"
               >
                 <HardDrive className="h-4 w-4" /> Restaurar
               </button>
@@ -4055,7 +4077,13 @@ function App() {
                   <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo de Contrato</label>
                   <select
                     value={prestForm.tipoContrato || 'ASISTENCIAL'}
-                    onChange={e => setPrestForm(f => ({ ...f, tipoContrato: e.target.value as 'ASISTENCIAL' | 'ESPECIALIDADES' }))}
+                    onChange={e => {
+                      const tipo = e.target.value as 'ASISTENCIAL' | 'ESPECIALIDADES';
+                      const lista = tipo === 'ESPECIALIDADES' ? TIPOS_ESPECIALIDADES : TIPOS_ASISTENCIAL;
+                      const savedMap = new Map((prestForm.metas || []).map(m => [m.type, m]));
+                      const newMetas = lista.map(t => savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true });
+                      setPrestForm(f => ({ ...f, tipoContrato: tipo, metas: newMetas }));
+                    }}
                     className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
                   >
                     <option value="ASISTENCIAL">ASISTENCIAL</option>
@@ -4065,12 +4093,13 @@ function App() {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-purple-500" /> Metas Mensuales por Servicio
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'text-purple-700 dark:text-purple-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                  <TrendingUp className={`h-4 w-4 ${(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'text-purple-500' : 'text-indigo-500'}`} />
+                  Metas Mensuales — {(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'Especialidades' : 'Servicios Asistenciales'}
                 </h3>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-100/80 dark:bg-slate-950/60 text-xs uppercase text-slate-500 dark:text-slate-400">
+                    <thead className={`text-xs uppercase text-slate-500 dark:text-slate-400 ${(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'bg-purple-50 dark:bg-purple-950/30' : 'bg-slate-100/80 dark:bg-slate-950/60'}`}>
                       <tr>
                         <th className="px-4 py-2 text-left">Servicio</th>
                         <th className="px-4 py-2 text-center w-40">Estado</th>
@@ -4078,7 +4107,14 @@ function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                      {prestForm.metas.map((m, idx) => (
+                      {prestForm.metas.filter(m =>
+                        (prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES'
+                          ? TIPOS_ESPECIALIDADES.includes(m.type)
+                          : TIPOS_ASISTENCIAL.includes(m.type)
+                      ).map((m, _) => {
+                        const idx = prestForm.metas.findIndex(x => x.type === m.type);
+                        return ({ ...m, _idx: idx });
+                      }).map((m: any) => { const idx = m._idx; return (
                         <tr key={idx} className={`transition-colors ${m.active ? 'hover:bg-slate-50 dark:hover:bg-slate-800/30' : 'bg-slate-50/60 dark:bg-slate-950/40 opacity-60'}`}>
                           <td className="px-4 py-2 text-slate-700 dark:text-slate-300 text-xs">{m.type}</td>
                           <td className="px-4 py-2 text-center">
@@ -4117,7 +4153,7 @@ function App() {
                             )}
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>
