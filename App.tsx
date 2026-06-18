@@ -203,7 +203,9 @@ function App() {
       const byId = new Map<string, Prestador>(); raw.forEach(p => byId.set(p.id, p));
       const byNitContrato = new Map<string, Prestador>();
       [...byId.values()].forEach(p => byNitContrato.set(`${p.nit}|${p.contrato}`, p));
-      const clean = [...byNitContrato.values()];
+      const clean = [...byNitContrato.values()].map(p =>
+        p.tipoContrato ? p : { ...p, tipoContrato: 'ASISTENCIAL' as const }
+      );
       localStorage.setItem('prestadores', JSON.stringify(clean));
       return clean;
     } catch { return []; }
@@ -349,7 +351,9 @@ function App() {
           const byIdP = new Map<string, Prestador>(); rawP.forEach(p => byIdP.set(p.id, p));
           const byNitContratoP = new Map<string, Prestador>();
           [...byIdP.values()].forEach(p => byNitContratoP.set(`${p.nit}|${p.contrato}`, p));
-          const cleanP = [...byNitContratoP.values()];
+          const cleanP = [...byNitContratoP.values()].map(p =>
+            p.tipoContrato ? p : { ...p, tipoContrato: 'ASISTENCIAL' as const }
+          );
           setPrestadores(cleanP); localStorage.setItem('prestadores', JSON.stringify(cleanP));
           CloudStorage.set('prestadores', cleanP);
         }
@@ -693,7 +697,9 @@ function App() {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string);
-        if (Array.isArray(data.prestadores)) setPrestadores(data.prestadores);
+        if (Array.isArray(data.prestadores)) setPrestadores(data.prestadores.map((p: Prestador) =>
+          p.tipoContrato ? p : { ...p, tipoContrato: 'ASISTENCIAL' as const }
+        ));
         if (Array.isArray(data.customCups)) setCustomCupsList(data.customCups);
         setMessage({ type: 'success', text: 'Configuración importada correctamente.' });
       } catch {
