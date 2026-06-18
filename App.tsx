@@ -190,7 +190,7 @@ function App() {
   const [jsonFileNames, setJsonFileNames] = useState<string[]>([]);
 
   // Tab Navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'dashboard-especialidades' | 'mantenimiento' | 'actas' | 'reportes' | 'renuncias'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas' | 'reportes' | 'renuncias'>('dashboard');
   const [maintTab, setMaintTab] = useState<'prestadores' | 'cups' | 'servicios' | 'usuarios' | 'monitor'>('prestadores');
 
   // Mantenimiento – Prestadores  (lazy init from localStorage — avoids save-before-load race)
@@ -1866,13 +1866,7 @@ function App() {
             onClick={() => setActiveTab('dashboard')}
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'dashboard' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
-            <BarChart3 className="h-4 w-4" /> Dashboard-Asistencial
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard-especialidades')}
-            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'dashboard-especialidades' ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-          >
-            <BarChart3 className="h-4 w-4" /> Dashboard-Especialidades
+            <BarChart3 className="h-4 w-4" /> Dashboard
           </button>
           {(hasPerm('mantenimiento') || hasPerm('usuarios') || hasPerm('prestadores')) && (
           <button
@@ -1930,7 +1924,7 @@ function App() {
         )}
 
         {activeTab === 'dashboard' && (() => {
-          const prestadoresAsistencial = prestadores.filter(p => !p.tipoContrato || p.tipoContrato === 'ASISTENCIAL');
+          const prestadoresAsistencial = prestadores;
           return (<>
 
         {/* --- Prestador Detectado Banner --- */}
@@ -2782,8 +2776,8 @@ function App() {
         </>);
         })()}
 
-        {/* ===== DASHBOARD ESPECIALIDADES TAB ===== */}
-        {activeTab === 'dashboard-especialidades' && (() => {
+        {/* ===== DASHBOARD ESPECIALIDADES TAB (removed) ===== */}
+        {false && (() => {
           const prestadoresEsp = prestadores.filter(p => p.tipoContrato === 'ESPECIALIDADES');
           return (<>
 
