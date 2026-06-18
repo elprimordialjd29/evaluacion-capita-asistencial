@@ -190,7 +190,7 @@ function App() {
   const [jsonFileNames, setJsonFileNames] = useState<string[]>([]);
 
   // Tab Navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'mantenimiento' | 'actas' | 'reportes' | 'renuncias'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'dashboard-especialidades' | 'mantenimiento' | 'actas' | 'reportes' | 'renuncias'>('dashboard');
   const [maintTab, setMaintTab] = useState<'prestadores' | 'cups' | 'servicios' | 'usuarios' | 'monitor'>('prestadores');
 
   // Mantenimiento – Prestadores  (lazy init from localStorage — avoids save-before-load race)
@@ -1844,7 +1844,13 @@ function App() {
             onClick={() => setActiveTab('dashboard')}
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'dashboard' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
-            <BarChart3 className="h-4 w-4" /> Dashboard
+            <BarChart3 className="h-4 w-4" /> Dashboard-Asistencial
+          </button>
+          <button
+            onClick={() => setActiveTab('dashboard-especialidades')}
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === 'dashboard-especialidades' ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            <BarChart3 className="h-4 w-4" /> Dashboard-Especialidades
           </button>
           {(hasPerm('mantenimiento') || hasPerm('usuarios') || hasPerm('prestadores')) && (
           <button
@@ -1901,7 +1907,9 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'dashboard' && (<>
+        {activeTab === 'dashboard' && (() => {
+          const prestadoresAsistencial = prestadores.filter(p => !p.tipoContrato || p.tipoContrato === 'ASISTENCIAL');
+          return (<>
 
         {/* --- Prestador Detectado Banner --- */}
         {(() => {
@@ -1956,7 +1964,7 @@ function App() {
               <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-indigo-500 dark:text-indigo-400" /> Prestadores
               </h2>
-              {prestadores.length > 0 && (
+              {prestadoresAsistencial.length > 0 && (
                 <button
                   onClick={() => { setActiveTab('mantenimiento'); setMaintTab('prestadores'); }}
                   className="text-xs text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-200 transition-colors"
@@ -1966,7 +1974,7 @@ function App() {
               )}
             </div>
 
-            {prestadores.length > 0 && (
+            {prestadoresAsistencial.length > 0 && (
               <div className="relative mb-3">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
@@ -1979,7 +1987,7 @@ function App() {
               </div>
             )}
 
-            {prestadores.length === 0 ? (
+            {prestadoresAsistencial.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
                 <Building2 className="h-10 w-10 text-slate-300 dark:text-slate-700" />
                 <p className="text-sm text-slate-500 dark:text-slate-400">No hay prestadores configurados</p>
@@ -1992,7 +2000,7 @@ function App() {
               </div>
             ) : (
               <div className="space-y-2 max-h-[480px] overflow-y-auto custom-scroll pr-1">
-                {prestadores.filter(p => {
+                {prestadoresAsistencial.filter(p => {
                   if (!searchPrestador.trim()) return true;
                   const q = searchPrestador.toLowerCase();
                   return p.nombre.toLowerCase().includes(q) || p.contrato.toLowerCase().includes(q);
@@ -2749,7 +2757,200 @@ function App() {
           </div>
         )}
 
-        </>)}
+        </>);
+        })()}
+
+        {/* ===== DASHBOARD ESPECIALIDADES TAB ===== */}
+        {activeTab === 'dashboard-especialidades' && (() => {
+          const prestadoresEsp = prestadores.filter(p => p.tipoContrato === 'ESPECIALIDADES');
+          return (<>
+
+        {/* --- Prestador Detectado Banner --- */}
+        {(() => {
+          const dp = detectedPrestadorId ? prestadoresEsp.find(p => p.id === detectedPrestadorId) : null;
+          if (!dp) return null;
+          return (
+            <div className="glass-panel rounded-2xl px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-l-4 border-purple-500 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
+                  <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-purple-500 dark:text-purple-400 uppercase tracking-wider">Prestador detectado en RIPS</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">{dp.nombre}</p>
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400 ml-1">
+                  {dp.nit && <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono">NIT: {dp.nit}</span>}
+                  {dp.contrato && <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">📋 {dp.contrato}</span>}
+                  {dp.municipio && <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">📍 {[dp.departamento, dp.municipio].filter(Boolean).join(', ')}</span>}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleLoadPrestadorMetas(dp)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-all shadow-sm"
+                >
+                  <TrendingUp className="h-3.5 w-3.5" /> Cargar Metas
+                </button>
+                <button
+                  onClick={() => { handleGenerarActa(dp); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-all shadow-sm"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" /> Generar Acta
+                </button>
+                <button
+                  onClick={() => setDetectedPrestadorId(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* --- Top Control Panel --- */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+          {/* ── Prestadores Especialidades Panel ── */}
+          <section className="glass-panel rounded-2xl p-5 shadow-xl relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-purple-500 dark:text-purple-400" /> Prestadores - Especialidades
+              </h2>
+              {prestadoresEsp.length > 0 && (
+                <button
+                  onClick={() => { setActiveTab('mantenimiento'); setMaintTab('prestadores'); }}
+                  className="text-xs text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-200 transition-colors"
+                >
+                  Gestionar →
+                </button>
+              )}
+            </div>
+
+            {prestadoresEsp.length > 0 && (
+              <div className="relative mb-3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por contrato o nombre..."
+                  value={searchPrestador}
+                  onChange={e => setSearchPrestador(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-purple-500/30"
+                />
+              </div>
+            )}
+
+            {prestadoresEsp.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+                <Building2 className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+                <p className="text-sm text-slate-500 dark:text-slate-400">No hay prestadores de Especialidades configurados</p>
+                <button
+                  onClick={() => { setActiveTab('mantenimiento'); setMaintTab('prestadores'); }}
+                  className="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                >
+                  + Agregar prestador
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[480px] overflow-y-auto custom-scroll pr-1">
+                {prestadoresEsp.filter(p => {
+                  if (!searchPrestador.trim()) return true;
+                  const q = searchPrestador.toLowerCase();
+                  return p.nombre.toLowerCase().includes(q) || p.contrato.toLowerCase().includes(q);
+                }).map(p => {
+                  const pActas = [...new Map(actas.filter(a => a.prestadorId === p.id || (a.nit && a.nit === p.nit && a.contrato === p.contrato)).map(a => [a.id, a])).values()];
+                  const isSelected = selectedDashPrestador === p.id;
+                  return (
+                    <div key={p.id}
+                      className={`rounded-xl border transition-all cursor-pointer ${isSelected
+                        ? 'border-purple-500/60 bg-purple-50/60 dark:bg-purple-500/10'
+                        : 'border-slate-200 dark:border-slate-700/60 hover:border-purple-300 dark:hover:border-purple-500/40 bg-slate-50/50 dark:bg-slate-800/30'}`}
+                      onClick={() => setSelectedDashPrestador(isSelected ? null : p.id)}
+                    >
+                      <div className="flex items-center justify-between px-3 py-2.5">
+                        <div>
+                          <div className="font-semibold text-sm text-slate-800 dark:text-slate-100">{p.nombre}</div>
+                          <div className="flex gap-2 mt-0.5 flex-wrap">
+                            <span className="text-[10px] text-slate-400 font-mono">NIT: {p.nit}</span>
+                            {p.contrato && <span className="text-[10px] text-slate-400">📋 {p.contrato}</span>}
+                            {p.regimen && (
+                              <span className={`text-[10px] font-bold ${p.regimen === 'CONTRIBUTIVO' ? 'text-orange-500' : 'text-emerald-500'}`}>
+                                {p.regimen}
+                              </span>
+                            )}
+                            {p.municipio && <span className="text-[10px] text-slate-400">📍 {p.municipio}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${pActas.length > 0 ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                            {pActas.length} acta{pActas.length !== 1 ? 's' : ''}
+                          </span>
+                          <span className={`text-slate-400 text-xs transition-transform ${isSelected ? 'rotate-180' : ''}`}>▾</span>
+                        </div>
+                      </div>
+
+                      {/* Expanded: actas history + actions */}
+                      {isSelected && (
+                        <div className="border-t border-slate-200 dark:border-slate-700 px-3 py-2 space-y-2">
+                          {pActas.length === 0 ? (
+                            <p className="text-[11px] text-slate-400 italic">Sin actas generadas aún.</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {pActas.map(a => {
+                                const totalProg = a.servicios.reduce((s, x) => s + x.programado, 0);
+                                const totalEjec = a.servicios.reduce((s, x) => s + x.ejecutado, 0);
+                                const cumpl = totalProg > 0 ? Math.min(Math.round((totalEjec / totalProg) * 100), 100) : 0;
+                                const color = cumpl >= 100 ? '#16a34a' : cumpl >= 80 ? '#ca8a04' : '#dc2626';
+                                return (
+                                  <div key={a.id} className="flex items-center justify-between bg-white dark:bg-slate-900/60 rounded-lg px-2.5 py-1.5 border border-slate-100 dark:border-slate-800">
+                                    <div>
+                                      <span className="text-[11px] font-mono font-bold text-purple-600 dark:text-purple-400">{a.numero}</span>
+                                      <span className="text-[10px] text-slate-400 ml-2">{a.periodoEvaluado}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] font-bold" style={{ color }}>{cumpl}%</span>
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setInlineActa(sanitizeActaServicios({ ...a })); setActiveTab('actas'); }}
+                                        className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 rounded transition-colors"
+                                      >
+                                        Ver
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={e => { e.stopPropagation(); handleGenerarActa(p); }}
+                              className="flex-1 text-xs py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium"
+                            >
+                              + Nueva Acta
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Upload Panel (same as Asistencial) */}
+          <section className="glass-panel rounded-2xl p-6 shadow-xl flex flex-col relative overflow-hidden transition-all">
+            <div className="absolute top-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -z-10"></div>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-5">
+              <Database className="h-5 w-5 text-purple-500 dark:text-purple-400" /> Dashboard - Especialidades
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Selecciona un prestador de especialidades del panel izquierdo para ver sus métricas.</p>
+          </section>
+        </div>
+
+        </>);
+        })()}
 
         {/* ===== MANTENIMIENTO TAB ===== */}
         {activeTab === 'mantenimiento' && (
@@ -2899,7 +3100,7 @@ function App() {
                                         </button>
                                         {isAdmin && (<>
                                           <button
-                                            onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', repLegalIPS: p.repLegalIPS || '', metas: mergedMetas }); setShowPrestForm(true); }}
+                                            onClick={() => { setEditPrest(p); const savedMetasMap = new Map((p.metas||[]).map((m: ServiceTypeMeta) => [m.type, m])); const mergedMetas = metas.map(m => savedMetasMap.get(m.type) ?? { ...m, monthlyGoal: 0 }); setPrestForm({ nombre: p.nombre, nit: p.nit, departamento: p.departamento, municipio: p.municipio, contrato: p.contrato, vigencia: p.vigencia || '', regimen: p.regimen || 'SUBSIDIADO', repLegalIPS: p.repLegalIPS || '', metas: mergedMetas, tipoContrato: p.tipoContrato }); setShowPrestForm(true); }}
                                             className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
                                             title="Editar contrato"
                                           >
@@ -3848,6 +4049,17 @@ function App() {
                   >
                     <option value="SUBSIDIADO">SUBSIDIADO</option>
                     <option value="CONTRIBUTIVO">CONTRIBUTIVO</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo de Contrato</label>
+                  <select
+                    value={prestForm.tipoContrato || 'ASISTENCIAL'}
+                    onChange={e => setPrestForm(f => ({ ...f, tipoContrato: e.target.value as 'ASISTENCIAL' | 'ESPECIALIDADES' }))}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                  >
+                    <option value="ASISTENCIAL">ASISTENCIAL</option>
+                    <option value="ESPECIALIDADES">ESPECIALIDADES</option>
                   </select>
                 </div>
               </div>
