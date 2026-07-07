@@ -62,7 +62,7 @@ const ALL_PERMISSIONS = [
   { key: 'usuarios',      label: 'Gestión de Usuarios',    desc: 'Crear y editar usuarios del sistema',      icon: '👥' },
 ];
 
-function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u: AppUser) => void; theme: 'light'|'dark' }) {
+function LoginScreen({ users, cloudReady, onLogin, theme }: { users: AppUser[]; cloudReady: boolean; onLogin: (u: AppUser) => void; theme: 'light'|'dark' }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -70,7 +70,7 @@ function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const u = users.find(u => u.username === username.trim() && u.password === password);
+    const u = users.find(u => u.username === username.trim() && u.password === password.trim());
     if (u) { onLogin(u); }
     else { setError('Usuario o contraseña incorrectos.'); }
   };
@@ -130,9 +130,14 @@ function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u:
             </div>
           </div>
           {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
-          <button type="submit"
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98]">
-            Ingresar
+          {!cloudReady && (
+            <p className={`text-xs text-center ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+              ⏳ Sincronizando datos...
+            </p>
+          )}
+          <button type="submit" disabled={!cloudReady}
+            className={`w-full py-2.5 font-semibold rounded-lg text-sm transition-all shadow-md active:scale-[0.98] ${cloudReady ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20' : 'bg-slate-400 text-white cursor-not-allowed'}`}>
+            {cloudReady ? 'Ingresar' : 'Cargando...'}
           </button>
         </form>
       </div>
@@ -143,6 +148,7 @@ function LoginScreen({ users, onLogin, theme }: { users: AppUser[]; onLogin: (u:
 function App() {
   // Evita guardar en Supabase durante la carga inicial
   const cloudInitialized = React.useRef(false);
+  const [cloudReady, setCloudReady] = useState(false);
 
   // --- State ---
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -385,6 +391,7 @@ function App() {
 
         // A partir de aquí, los cambios de estado sí se guardan en Supabase
         cloudInitialized.current = true;
+        setCloudReady(true);
 
         // Note: prestadores and actas are loaded via lazy useState initializers above
 
@@ -400,6 +407,8 @@ function App() {
         }
       } catch (error) {
         console.error("Error initializing data:", error);
+        cloudInitialized.current = true;
+        setCloudReady(true);
       }
     };
     initData();
@@ -1784,6 +1793,7 @@ function App() {
   if (!currentUser) return (
     <LoginScreen
       users={users}
+      cloudReady={cloudReady}
       onLogin={u => { setCurrentUser(u); sessionStorage.setItem('currentUser', JSON.stringify(u)); }}
       theme={theme}
     />
