@@ -389,6 +389,13 @@ function App() {
         if (cloudData['firmasGlobales'] && Object.keys(cloudData['firmasGlobales']).length > 0) { setFirmasGlobales(cloudData['firmasGlobales']); localStorage.setItem('firmasGlobales', JSON.stringify(cloudData['firmasGlobales'])); }
         if (cloudData['customCups']?.length > 0) { setCustomCupsList(cloudData['customCups']); localStorage.setItem('customCups', JSON.stringify(cloudData['customCups'])); }
 
+        // Si Supabase estaba vacío para alguna clave, subir datos locales (primera vez o Supabase nuevo)
+        const readLocal = <T,>(key: string, fallback: T): T => { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : fallback; } catch { return fallback; } };
+        if (!cloudData['appUsers']?.length) { const local = readLocal<AppUser[]>('appUsers', []); if (local.length) CloudStorage.set('appUsers', local); }
+        if (!cloudData['prestadores']?.length) { const local = readLocal<Prestador[]>('prestadores', []); if (local.length) CloudStorage.set('prestadores', local); }
+        if (!cloudData['actas']?.length) { const local = readLocal<Acta[]>('actas', []); if (local.length) CloudStorage.set('actas', local); }
+        if (!cloudData['funcionarios']?.length) { const local = readLocal<string[]>('funcionarios', []); if (local.length) CloudStorage.set('funcionarios', local); }
+
         // A partir de aquí, los cambios de estado sí se guardan en Supabase
         cloudInitialized.current = true;
         setCloudReady(true);
@@ -588,15 +595,20 @@ function App() {
   };
 
   const handleSaveSession = async () => {
-    if (registros.length === 0) {
-      setMessage({ type: 'error', text: 'No hay datos para guardar.' });
-      return;
-    }
     setIsSaving(true);
     try {
-      const success = await StorageService.saveSessionData(registros, Array.from(usuariosMap.values()));
-      if (success) setMessage({ type: 'success', text: 'Datos sincronizados con éxito.' });
-      else setMessage({ type: 'error', text: 'Error guardando datos (Revise conexión o tamaño).' });
+      // Sincronización completa: usuarios, prestadores, actas y datos de sesión
+      await Promise.all([
+        CloudStorage.set('appUsers', users),
+        CloudStorage.set('prestadores', prestadores),
+        CloudStorage.set('actas', actas),
+        CloudStorage.set('funcionarios', funcionarios),
+        CloudStorage.set('firmasGlobales', firmasGlobales),
+        ...(registros.length > 0 ? [StorageService.saveSessionData(registros, Array.from(usuariosMap.values()))] : []),
+      ]);
+      setMessage({ type: 'success', text: `Sincronizado: ${users.length} usuarios, ${prestadores.length} prestadores, ${actas.length} actas.` });
+    } catch {
+      setMessage({ type: 'error', text: 'Error sincronizando. Revise la conexión.' });
     } finally {
       setIsSaving(false);
     }
