@@ -104,6 +104,7 @@ export default function ReportesTab({ actas, prestadores }: Props) {
   // Especialidades Básicas filters
   const [espPeriodo, setEspPeriodo] = useState('');
   const [espReg, setEspReg]         = useState('');
+  const [espTipo, setEspTipo]       = useState<''|'ESPECIALIDADES'|'CAPITA AMPLIADA'>('');
   const [espView, setEspView]       = useState<'prestador'|'municipio'|'departamento'>('prestador');
 
   const [selPrest, setSelPrest]     = useState('');
@@ -257,10 +258,12 @@ export default function ReportesTab({ actas, prestadores }: Props) {
   type EspRow = { key: string; nombre: string; municipio: string; departamento: string; regimen: string; contrato: string; esp: Record<string, { prog: number; ejec: number }> };
 
   const espData = useMemo(() => {
-    const filtered = actas.filter(a =>
-      (!espPeriodo || a.periodoEvaluado === espPeriodo) &&
-      (!espReg || (a.regimen||'SUBSIDIADO').toUpperCase() === espReg)
-    );
+    const filtered = actas.filter(a => {
+      const p = prestadores.find(x => x.id === a.prestadorId);
+      return (!espPeriodo || a.periodoEvaluado === espPeriodo) &&
+        (!espReg || (a.regimen||'SUBSIDIADO').toUpperCase() === espReg) &&
+        (!espTipo || p?.tipoContrato === espTipo);
+    });
 
     // Aggregate by prestadorId
     const byPrest = new Map<string, EspRow>();
@@ -306,7 +309,7 @@ export default function ReportesTab({ actas, prestadores }: Props) {
       municipio: [...byMun.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       departamento: [...byDep.values()].sort((a, b) => a.nombre.localeCompare(b.nombre)),
     };
-  }, [actas, prestadores, espPeriodo, espReg]);
+  }, [actas, prestadores, espPeriodo, espReg, espTipo]);
 
   const espPct = (row: EspRow, key: string) => {
     const { prog, ejec } = row.esp[key];
@@ -778,7 +781,7 @@ export default function ReportesTab({ actas, prestadores }: Props) {
         return (
           <div className="space-y-4">
             {/* Filters */}
-            <div className="glass-panel rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="glass-panel rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Período</label>
                 <select value={espPeriodo} onChange={e => setEspPeriodo(e.target.value)} className={inputCls}>
@@ -791,6 +794,14 @@ export default function ReportesTab({ actas, prestadores }: Props) {
                 <select value={espReg} onChange={e => setEspReg(e.target.value)} className={inputCls}>
                   <option value="">— Todos —</option>
                   {allRegimenes.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Tipo de Contrato</label>
+                <select value={espTipo} onChange={e => setEspTipo(e.target.value as typeof espTipo)} className={inputCls}>
+                  <option value="">— Todos —</option>
+                  <option value="ESPECIALIDADES">ESPECIALIDADES</option>
+                  <option value="CAPITA AMPLIADA">CAPITA AMPLIADA</option>
                 </select>
               </div>
               <div>
