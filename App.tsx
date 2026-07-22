@@ -10,7 +10,7 @@ import {
   Settings, Plus, Pencil, Check, Building2, ClipboardList, LogOut, ShieldCheck, User, Lock, Eye, EyeOff, HardDrive
 } from 'lucide-react';
 import {
-  normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, TIPOS_ASISTENCIAL, TIPOS_ESPECIALIDADES, CUPS_TIPO_MAP,
+  normalizeId, parseDateFromLine, TIPOS_SERVICIOS_DEFAULT, TIPOS_ASISTENCIAL, TIPOS_ESPECIALIDADES, TIPOS_CAPITA_AMPLIADA, CUPS_TIPO_MAP,
   edadDetallada, grupoEtarioDesdeFN
 } from './utils/logic';
 import {
@@ -4100,8 +4100,8 @@ function App() {
                   <select
                     value={prestForm.tipoContrato || 'ASISTENCIAL'}
                     onChange={e => {
-                      const tipo = e.target.value as 'ASISTENCIAL' | 'ESPECIALIDADES';
-                      const lista = tipo === 'ESPECIALIDADES' ? TIPOS_ESPECIALIDADES : TIPOS_ASISTENCIAL;
+                      const tipo = e.target.value as 'ASISTENCIAL' | 'ESPECIALIDADES' | 'CAPITA AMPLIADA';
+                      const lista = tipo === 'ESPECIALIDADES' ? TIPOS_ESPECIALIDADES : tipo === 'CAPITA AMPLIADA' ? TIPOS_CAPITA_AMPLIADA : TIPOS_ASISTENCIAL;
                       const savedMap = new Map((prestForm.metas || []).map(m => [m.type, m]));
                       const newMetas = lista.map(t => savedMap.get(t) ?? { type: t, monthlyGoal: 0, active: true });
                       setPrestForm(f => ({ ...f, tipoContrato: tipo, metas: newMetas }));
@@ -4110,18 +4110,27 @@ function App() {
                   >
                     <option value="ASISTENCIAL">ASISTENCIAL</option>
                     <option value="ESPECIALIDADES">ESPECIALIDADES</option>
+                    <option value="CAPITA AMPLIADA">CAPITA AMPLIADA</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'text-purple-700 dark:text-purple-300' : 'text-slate-700 dark:text-slate-300'}`}>
-                  <TrendingUp className={`h-4 w-4 ${(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'text-purple-500' : 'text-indigo-500'}`} />
-                  Metas Mensuales — {(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'Especialidades' : 'Servicios Asistenciales'}
+                {(() => {
+                  const tc = prestForm.tipoContrato || 'ASISTENCIAL';
+                  const headerColor = tc === 'ESPECIALIDADES' ? 'text-purple-700 dark:text-purple-300' : tc === 'CAPITA AMPLIADA' ? 'text-teal-700 dark:text-teal-300' : 'text-slate-700 dark:text-slate-300';
+                  const iconColor = tc === 'ESPECIALIDADES' ? 'text-purple-500' : tc === 'CAPITA AMPLIADA' ? 'text-teal-500' : 'text-indigo-500';
+                  const headBg = tc === 'ESPECIALIDADES' ? 'bg-purple-50 dark:bg-purple-950/30' : tc === 'CAPITA AMPLIADA' ? 'bg-teal-50 dark:bg-teal-950/30' : 'bg-slate-100/80 dark:bg-slate-950/60';
+                  const label = tc === 'ESPECIALIDADES' ? 'Especialidades' : tc === 'CAPITA AMPLIADA' ? 'Cápita Ampliada' : 'Servicios Asistenciales';
+                  const lista = tc === 'ESPECIALIDADES' ? TIPOS_ESPECIALIDADES : tc === 'CAPITA AMPLIADA' ? TIPOS_CAPITA_AMPLIADA : TIPOS_ASISTENCIAL;
+                  return (<>
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${headerColor}`}>
+                  <TrendingUp className={`h-4 w-4 ${iconColor}`} />
+                  Metas Mensuales — {label}
                 </h3>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className={`text-xs uppercase text-slate-500 dark:text-slate-400 ${(prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES' ? 'bg-purple-50 dark:bg-purple-950/30' : 'bg-slate-100/80 dark:bg-slate-950/60'}`}>
+                    <thead className={`text-xs uppercase text-slate-500 dark:text-slate-400 ${headBg}`}>
                       <tr>
                         <th className="px-4 py-2 text-left">Servicio</th>
                         <th className="px-4 py-2 text-center w-40">Estado</th>
@@ -4129,11 +4138,7 @@ function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                      {prestForm.metas.filter(m =>
-                        (prestForm.tipoContrato || 'ASISTENCIAL') === 'ESPECIALIDADES'
-                          ? TIPOS_ESPECIALIDADES.includes(m.type)
-                          : TIPOS_ASISTENCIAL.includes(m.type)
-                      ).map((m, _) => {
+                      {prestForm.metas.filter(m => lista.includes(m.type)).map((m, _) => {
                         const idx = prestForm.metas.findIndex(x => x.type === m.type);
                         return ({ ...m, _idx: idx });
                       }).map((m: any) => { const idx = m._idx; return (
@@ -4179,6 +4184,7 @@ function App() {
                     </tbody>
                   </table>
                 </div>
+                </>); })()}
               </div>
             </div>
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl">

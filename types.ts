@@ -100,7 +100,7 @@ export interface Prestador {
   regimen: string;
   repLegalIPS: string;
   metas: ServiceTypeMeta[];
-  tipoContrato?: 'ASISTENCIAL' | 'ESPECIALIDADES';
+  tipoContrato?: 'ASISTENCIAL' | 'ESPECIALIDADES' | 'CAPITA AMPLIADA';
 }
 
 export interface CustomCupsEntry {
